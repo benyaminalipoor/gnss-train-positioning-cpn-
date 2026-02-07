@@ -55,19 +55,20 @@ def run_single_simulation(
     print(f"\nRunning simulation: Scenario={scenario.value}, Interference={interference.value}")
     
     # Generate data
-    print("Generating satellite signals...")
-    signal_data = generate_satellite_signals(
-        n_epochs=n_epochs,
-        n_satellites=8,
-        noise_std=3.0,
-        random_seed=42
-    )
-    
     print("Generating reference trajectory...")
     reference_trajectory = generate_reference_trajectory(
         n_epochs=n_epochs,
         velocity=50.0,  # 50 m/s (~180 km/h)
         trajectory_type='linear'
+    )
+    
+    print("Generating satellite signals...")
+    from src.utils.data_loader import generate_satellite_signals_for_trajectory
+    signal_data = generate_satellite_signals_for_trajectory(
+        reference_trajectory=reference_trajectory,
+        n_satellites=8,
+        noise_std=3.0,
+        random_seed=42
     )
     
     # Create scenario and interference sequences

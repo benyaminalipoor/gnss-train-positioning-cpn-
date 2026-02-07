@@ -12,6 +12,111 @@ from pathlib import Path
 from ..cpn.tokens import Signal, SignalList, Coordinate, Scenario, StateInterference
 
 
+def generate_satellite_signals_for_trajectory(
+    reference_trajectory: List[Coordinate],
+    n_satellites: int = 8,
+    noise_std: float = 3.0,
+    random_seed: int = None
+) -> List[SignalList]:
+    """
+    Generate satellite signals matched to a reference trajectory.
+    
+    This generates GNSS signals where pseudoranges are calculated from
+    the actual reference positions, enabling realistic error calculation.
+    
+    Args:
+        reference_trajectory: List of reference positions
+        n_satellites: Number of visible satellites
+        noise_std: Pseudorange noise standard deviation (meters)
+        random_seed: Random seed for reproducibility
+        
+    Returns:
+        List of SignalList for each epoch
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    
+    n_epochs = len(reference_trajectory)
+    
+    # Generate constellation geometry (satellites at fixed positions)
+    satellite_positions = []
+    for i in range(n_satellites):
+        # Distribute satellites evenly in sky
+        elevation = 15 + (i % 3) * 25  # 15, 40, 65 degrees
+        azimuth = (i * 360.0 / n_satellites) % 360
+        
+        # Satellite range (~20,200 km)
+        sat_range_base = 20200000.0
+        
+        # Convert spherical to Cartesian (relative to local origin)
+        elev_rad = np.radians(elevation)
+        azim_rad = np.radians(azimuth)
+        
+        # Satellite position offset (in ENU frame from origin)
+        dx = sat_range_base * np.cos(elev_rad) * np.sin(azim_rad)
+        dy = sat_range_base * np.cos(elev_rad) * np.cos(azim_rad)
+        dz = sat_range_base * np.sin(elev_rad)
+        
+        sat_pos = Coordinate(x=dx, y=dy, z=dz)
+        
+        satellite_positions.append({
+            'position': sat_pos,
+            'elevation': elevation,
+            'azimuth': azimuth
+        })
+    
+    # Generate signals for each epoch based on true receiver position
+    signal_data = []
+    for epoch in range(n_epochs):
+        signals = []
+        receiver_pos = reference_trajectory[epoch]
+        
+        for sat_id, sat_info in enumerate(satellite_positions):
+            sat_pos = sat_info['position']
+            
+            # True geometric range
+            true_range = np.sqrt(
+                (sat_pos.x - receiver_pos.x)**2 +
+                (sat_pos.y - receiver_pos.y)**2 +
+                (sat_pos.z - receiver_pos.z)**2
+            )
+            
+            # Add noise to pseudorange
+            noise = np.random.normal(0, noise_std)
+            pseudorange = true_range + noise
+            
+            # Pseudorange rate (simplified)
+            psr_rate = np.random.normal(0, 0.5)
+            
+            # Satellite velocity (simplified)
+            sat_velocity = np.array([
+                np.random.normal(0, 100.0),
+                np.random.normal(0, 100.0),
+                np.random.normal(0, 100.0)
+            ])
+            
+            signal = Signal(
+                id=sat_id + 1,
+                psr=pseudorange,
+                psr_rate=psr_rate,
+                x=sat_pos.x,
+                y=sat_pos.y,
+                z=sat_pos.z,
+                vx=sat_velocity[0],
+                vy=sat_velocity[1],
+                vz=sat_velocity[2],
+                clk=np.random.normal(0, 1e-7),
+                azimuth=sat_info['azimuth'],
+                elevation=sat_info['elevation'],
+                rate_clock=0.0
+            )
+            signals.append(signal)
+        
+        signal_data.append(signals)
+    
+    return signal_data
+
+
 def generate_satellite_signals(
     n_epochs: int,
     n_satellites: int = 8,
@@ -23,11 +128,12 @@ def generate_satellite_signals(
     Generate synthetic GNSS satellite signals.
     
     This generates realistic satellite signals for simulation purposes.
+    Uses a simplified model where satellites are positioned around the receiver.
     
     Args:
         n_epochs: Number of time epochs
         n_satellites: Number of visible satellites
-        receiver_position: Approximate receiver position
+        receiver_position: Approximate receiver position (relative to local origin)
         noise_std: Pseudorange noise standard deviation (meters)
         random_seed: Random seed for reproducibility
         
@@ -38,33 +144,29 @@ def generate_satellite_signals(
         np.random.seed(random_seed)
     
     if receiver_position is None:
-        # Default to approximate location (Beijing area in UTM)
-        receiver_position = Coordinate(
-            x=450000.0,  # Easting (meters)
-            y=4400000.0,  # Northing (meters)
-            z=50.0  # Height (meters)
-        )
+        # Default to a local coordinate system origin
+        receiver_position = Coordinate(x=0.0, y=0.0, z=0.0)
     
     signal_data = []
     
-    # Generate constellation geometry
+    # Generate constellation geometry (satellites distributed around receiver)
     satellite_positions = []
     for i in range(n_satellites):
         # Distribute satellites in sky with varying elevations and azimuths
         elevation = np.random.uniform(15, 85)  # degrees
-        azimuth = np.random.uniform(0, 360)    # degrees
+        azimuth = i * 360.0 / n_satellites + np.random.uniform(-15, 15)  # Spread evenly
         
         # Satellite at approximately 20,200 km altitude
-        sat_range = 20200000.0 + np.random.uniform(-1000000, 1000000)
+        sat_range = 20200000.0 + np.random.uniform(-100000, 100000)
         
-        # Convert to Cartesian (simplified)
+        # Convert spherical to Cartesian (satellite position in local ENU frame)
         elev_rad = np.radians(elevation)
         azim_rad = np.radians(azimuth)
         
-        # Satellite position relative to receiver
-        dx = sat_range * np.cos(elev_rad) * np.sin(azim_rad)
-        dy = sat_range * np.cos(elev_rad) * np.cos(azim_rad)
-        dz = sat_range * np.sin(elev_rad)
+        # Position offset from receiver (in East-North-Up frame)
+        dx = sat_range * np.cos(elev_rad) * np.sin(azim_rad)  # East
+        dy = sat_range * np.cos(elev_rad) * np.cos(azim_rad)  # North
+        dz = sat_range * np.sin(elev_rad)  # Up
         
         sat_pos = Coordinate(
             x=receiver_position.x + dx,
@@ -84,30 +186,62 @@ def generate_satellite_signals(
         signals = []
         
         for sat_id, sat_info in enumerate(satellite_positions):
-            # True geometric range
-            true_range = sat_info['range']
+            # True geometric range from receiver to satellite
+            sat_pos = sat_info['position']
+            true_range = np.sqrt(
+                (sat_pos.x - receiver_position.x)**2 +
+                (sat_pos.y - receiver_position.y)**2 +
+                (sat_pos.z - receiver_position.z)**2
+            )
             
             # Add noise to pseudorange
             noise = np.random.normal(0, noise_std)
             pseudorange = true_range + noise
             
-            # Pseudorange rate (Doppler-derived)
-            # Simplified: small random velocity component
+            # Pseudorange rate (Doppler-derived) - simplified
             psr_rate = np.random.normal(0, 1.0)  # m/s
             
-            # Satellite velocity (simplified)
+            # Satellite velocity (simplified circular orbit)
+            sat_velocity = np.random.normal(0, 500.0, size=3)  # m/s
+    # Generate signals for each epoch
+    for epoch in range(n_epochs):
+        signals = []
+        
+        # Update receiver position if moving (for moving trajectory)
+        # In a real scenario, this would be the train's current position
+        epoch_receiver_pos = receiver_position
+        
+        for sat_id, sat_info in enumerate(satellite_positions):
+            # Satellite position (remains relatively constant over short periods)
+            sat_pos = sat_info['position']
+            
+            # True geometric range from current receiver position to satellite
+            true_range = np.sqrt(
+                (sat_pos.x - epoch_receiver_pos.x)**2 +
+                (sat_pos.y - epoch_receiver_pos.y)**2 +
+                (sat_pos.z - epoch_receiver_pos.z)**2
+            )
+            
+            # Add noise to pseudorange
+            noise = np.random.normal(0, noise_std)
+            pseudorange = true_range + noise
+            
+            # Pseudorange rate (Doppler-derived) - simplified
+            psr_rate = np.random.normal(0, 1.0)  # m/s
+            
+            # Satellite velocity (simplified circular orbit)
             sat_velocity = np.random.normal(0, 500.0, size=3)  # m/s
             
-            # Clock bias (simplified)
+            # Clock bias (simplified, small random walk)
             clock_bias = np.random.normal(0, 1e-6)  # seconds
             
             signal = Signal(
                 id=sat_id + 1,
                 psr=pseudorange,
                 psr_rate=psr_rate,
-                x=sat_info['position'].x,
-                y=sat_info['position'].y,
-                z=sat_info['position'].z,
+                x=sat_pos.x,
+                y=sat_pos.y,
+                z=sat_pos.z,
                 vx=sat_velocity[0],
                 vy=sat_velocity[1],
                 vz=sat_velocity[2],
@@ -134,7 +268,7 @@ def generate_reference_trajectory(
     
     Args:
         n_epochs: Number of time points
-        start_position: Starting position
+        start_position: Starting position (in local coordinates)
         velocity: Train velocity (m/s)
         trajectory_type: Type of trajectory ('linear', 'curved', 'complex')
         
@@ -142,23 +276,19 @@ def generate_reference_trajectory(
         List of reference positions
     """
     if start_position is None:
-        # Default starting position
-        start_position = Coordinate(
-            x=450000.0,
-            y=4400000.0,
-            z=50.0
-        )
+        # Default starting position at local origin
+        start_position = Coordinate(x=0.0, y=0.0, z=0.0)
     
     trajectory = []
     
     if trajectory_type == 'linear':
-        # Simple linear trajectory
+        # Simple linear trajectory moving in positive x direction
         for i in range(n_epochs):
             distance = velocity * i  # Distance traveled
             position = Coordinate(
-                x=start_position.x + distance * 0.8,  # Moving northeast
-                y=start_position.y + distance * 0.6,
-                z=start_position.z
+                x=start_position.x + distance,  # Moving along track
+                y=start_position.y,  # Straight line
+                z=start_position.z   # Constant height
             )
             trajectory.append(position)
     
