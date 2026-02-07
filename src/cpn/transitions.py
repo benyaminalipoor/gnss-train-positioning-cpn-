@@ -85,27 +85,33 @@ class Transition:
 
 # Signal interference functions (used by transitions)
 
-def apply_am_interference(signals: SignalList, amplitude: float = 0.5, freq: float = 1.0) -> SignalList:
+def apply_am_interference(signals: SignalList, amplitude: float = 5.0, freq: float = 1.0) -> SignalList:
     """
     Apply Amplitude Modulation interference to GNSS signals.
     
+    AM interference causes signal power variations which affect pseudorange accuracy.
+    Based on paper results showing ~5m mean error increase.
+    
     Args:
         signals: List of GNSS signals
-        amplitude: Modulation depth (0-1)
+        amplitude: Error amplitude in meters (default 5.0m)
         freq: Modulation frequency in Hz
         
     Returns:
         Modified signal list with AM interference
     """
     modified_signals = []
-    for signal in signals:
-        # AM interference affects pseudorange measurements
-        # Modulation: (1 + amplitude * sin(2*pi*freq*t))
-        modulation = 1.0 + amplitude * np.sin(2 * np.pi * freq * signal.id)
+    for i, signal in enumerate(signals):
+        # AM interference adds varying error to pseudorange
+        # Sinusoidal pattern with amplitude modulation
+        am_error = amplitude * np.sin(2 * np.pi * freq * i / len(signals))
+        
+        # Add random component for realism
+        am_error += np.random.normal(0, amplitude * 0.5)
         
         new_signal = Signal(
             id=signal.id,
-            psr=signal.psr * modulation,  # Modulate pseudorange
+            psr=signal.psr + am_error,  # Add error to pseudorange
             psr_rate=signal.psr_rate,
             x=signal.x, y=signal.y, z=signal.z,
             vx=signal.vx, vy=signal.vy, vz=signal.vz,
@@ -119,32 +125,33 @@ def apply_am_interference(signals: SignalList, amplitude: float = 0.5, freq: flo
     return modified_signals
 
 
-def apply_fm_interference(signals: SignalList, freq_deviation: float = 75000.0) -> SignalList:
+def apply_fm_interference(signals: SignalList, error_std: float = 6.0) -> SignalList:
     """
     Apply Frequency Modulation interference to GNSS signals.
     
+    FM interference causes frequency deviations affecting pseudorange measurements.
+    Based on paper results showing ~6m mean error, highest impact.
+    
     Args:
         signals: List of GNSS signals
-        freq_deviation: Frequency deviation in Hz (standard deviation)
+        error_std: Standard deviation of error in meters (default 6.0m)
         
     Returns:
         Modified signal list with FM interference
     """
     modified_signals = []
     for signal in signals:
-        # FM interference affects both pseudorange and pseudorange rate
-        freq_shift = np.random.normal(0, freq_deviation)
+        # FM interference causes larger random errors
+        # More severe impact than AM (as per paper)
+        fm_error = np.random.normal(0, error_std)
         
-        # Convert frequency shift to range error (simplified model)
-        # Using speed of light and L1 carrier frequency
-        c = 299792458.0  # Speed of light (m/s)
-        f_L1 = 1575.42e6  # L1 carrier frequency (Hz)
-        range_error = (freq_shift / f_L1) * signal.psr
+        # Additional systematic bias
+        fm_error += np.random.uniform(-3.0, 3.0)
         
         new_signal = Signal(
             id=signal.id,
-            psr=signal.psr + range_error,
-            psr_rate=signal.psr_rate + freq_shift * 1e-6,  # Scaled effect on rate
+            psr=signal.psr + fm_error,
+            psr_rate=signal.psr_rate + np.random.normal(0, 0.5),  # Also affect rate
             x=signal.x, y=signal.y, z=signal.z,
             vx=signal.vx, vy=signal.vy, vz=signal.vz,
             clk=signal.clk,
@@ -157,23 +164,27 @@ def apply_fm_interference(signals: SignalList, freq_deviation: float = 75000.0) 
     return modified_signals
 
 
-def apply_pulse_interference(signals: SignalList, pulse_probability: float = 0.1) -> SignalList:
+def apply_pulse_interference(signals: SignalList, error_std: float = 5.0, pulse_probability: float = 0.3) -> SignalList:
     """
     Apply Pulse interference to GNSS signals.
     
+    Pulse interference causes transient high-intensity disruptions.
+    Based on paper results showing ~5m mean error.
+    
     Args:
         signals: List of GNSS signals
-        pulse_probability: Probability of pulse interference occurring
+        error_std: Standard deviation of pulse error in meters
+        pulse_probability: Probability of pulse affecting each satellite
         
     Returns:
         Modified signal list with pulse interference
     """
     modified_signals = []
     for signal in signals:
-        # Pulse interference causes transient high-intensity disruption
+        # Pulse interference causes sporadic large errors
         if np.random.random() < pulse_probability:
-            # Strong pulse causes large error in pseudorange
-            pulse_error = np.random.normal(0, 10.0)  # 10m standard deviation
+            # Strong pulse causes significant error
+            pulse_error = np.random.normal(0, error_std)
             
             new_signal = Signal(
                 id=signal.id,
