@@ -1,0 +1,75 @@
+# GNSS Train Positioning CPN - Configuration File
+# This file contains all simulation parameters
+
+simulation:
+  duration: 600  # Duration in seconds (10 minutes)
+  time_step: 1.0  # Time step in seconds
+  random_seed: 42  # Random seed for reproducibility
+
+gnss:
+  min_satellites: 4
+  max_satellites: 12
+  carrier_frequency_l1: 1575420000.0  # L1 frequency in Hz
+  speed_of_light: 299792458.0  # Speed of light in m/s
+  pseudorange_noise_std: 3.0  # Pseudorange noise standard deviation (meters)
+  elevation_mask: 10.0  # Minimum elevation angle (degrees)
+
+interference:
+  am:
+    enabled: true
+    amplitude: 0.5  # Modulation depth (0-1)
+    frequency: 1.0  # Modulation frequency (Hz)
+  
+  fm:
+    enabled: true
+    freq_deviation_std: 75000.0  # Frequency deviation std (Hz)
+  
+  pulse:
+    enabled: true
+    probability: 0.1  # Probability of pulse occurrence
+    error_std: 10.0  # Pulse error standard deviation (meters)
+
+scenarios:
+  open_area:
+    enabled: true
+  
+  mountain:
+    enabled: true
+    height: 500.0  # Mountain height (meters)
+    distance: 1000.0  # Distance to mountain (meters)
+  
+  tunnel:
+    enabled: true
+    length: 2000.0  # Tunnel length (meters)
+
+ekf:
+  process_noise:
+    position: 0.5  # Position process noise (m)
+    velocity: 0.1  # Velocity process noise (m/s)
+    clock_bias: 1.0  # Clock bias process noise (m)
+    clock_drift: 0.1  # Clock drift process noise (m/s)
+  
+  measurement_noise:
+    pseudorange: 3.0  # Pseudorange measurement noise (m)
+    position: 5.0  # Position measurement noise (m)
+  
+  initial_covariance:
+    position: 100.0  # Initial position uncertainty (m^2)
+    velocity: 10.0  # Initial velocity uncertainty (m^2/s^2)
+    clock_bias: 1000.0  # Initial clock bias uncertainty (m^2)
+    clock_drift: 10.0  # Initial clock drift uncertainty (m^2/s^2)
+
+train:
+  initial_velocity: 0.0  # Initial velocity (m/s)
+  max_velocity: 83.33  # Maximum velocity (m/s) - 300 km/h
+  acceleration: 0.5  # Acceleration (m/s^2)
+  deceleration: -0.8  # Deceleration (m/s^2)
+
+output:
+  save_results: true
+  results_dir: results
+  figures_dir: results/figures
+  tables_dir: results/tables
+  save_format:
+    - png
+    - pdf
