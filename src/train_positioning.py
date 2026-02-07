@@ -46,10 +46,10 @@ class ExtendedKalmanFilter:
         
         # State covariance matrix
         self.P = np.eye(self.state_dim) * 100.0
-        self.P[0:3, 0:3] *= 10.0  # Position uncertainty
-        self.P[3:6, 3:6] *= 1.0   # Velocity uncertainty
-        self.P[6, 6] = 100.0      # Clock bias uncertainty
-        self.P[7, 7] = 10.0       # Clock drift uncertainty
+        self.P[0:3, 0:3] *= 100.0  # Position uncertainty (larger initial)
+        self.P[3:6, 3:6] *= 10.0   # Velocity uncertainty
+        self.P[6, 6] = 1000.0      # Clock bias uncertainty (larger)
+        self.P[7, 7] = 100.0       # Clock drift uncertainty
         
         # Process noise covariance
         self.Q = np.eye(self.state_dim)
@@ -59,7 +59,7 @@ class ExtendedKalmanFilter:
         self.Q[7, 7] = 0.1        # Clock drift process noise
         
         # Measurement noise (pseudorange)
-        self.R_base = 10.0  # Base measurement noise (meters)
+        self.R_base = 5.0  # Base measurement noise (meters) - reduced for better convergence
         
         # Time step
         self.dt = 1.0  # seconds

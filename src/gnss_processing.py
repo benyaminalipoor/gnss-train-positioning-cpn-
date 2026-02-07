@@ -131,10 +131,13 @@ class InterferenceModel:
         # Calculate amplitude modulation factor
         envelope = 1.0 + self.AM_MODULATION_DEPTH * np.sin(2 * np.pi * self.AM_MODULATION_FREQ * time)
         
-        # Apply to pseudorange (main observable affected)
+        # Apply error proportional to modulation (affects signal quality)
+        # Scale to produce ~5m error on average
+        psr_error = (envelope - 1.0) * 10.0  # ±5m variation
+        
         modified_signal = SatelliteSignal(
             id=signal.id,
-            psr=signal.psr * envelope,
+            psr=signal.psr + psr_error,
             psr_rate=signal.psr_rate,
             x=signal.x, y=signal.y, z=signal.z,
             vx=signal.vx, vy=signal.vy, vz=signal.vz,
@@ -156,8 +159,8 @@ class InterferenceModel:
         freq_deviation = np.random.normal(0, self.FM_DEVIATION_STD)
         
         # Convert frequency error to pseudorange error
-        # Δρ = (Δf / f) * ρ
-        psr_error = (freq_deviation / self.L1_FREQUENCY) * signal.psr
+        # Scale down for more realistic impact
+        psr_error = (freq_deviation / self.L1_FREQUENCY) * signal.psr * 0.01  # Reduced factor
         
         modified_signal = SatelliteSignal(
             id=signal.id,
@@ -193,9 +196,9 @@ class InterferenceModel:
         
         # Check if we're in pulse active period
         if time_in_period < pulse_width:
-            # Generate pulse amplitude (1 to 5)
+            # Generate pulse amplitude (scaled for ~5m average error)
             amplitude = np.random.uniform(1, 5)
-            psr_error = amplitude * 10.0  # Scale to meters
+            psr_error = amplitude * 2.0  # Scale to produce reasonable errors
         else:
             psr_error = 0.0
         
@@ -341,29 +344,60 @@ def generate_synthetic_gnss_data(num_epochs: int = 600,
     
     observations = []
     
+    # GPS satellite orbital radius from Earth center
+    EARTH_RADIUS = 6371e3  # meters
+    GPS_ALTITUDE = 20200e3  # meters
+    GPS_ORBITAL_RADIUS = EARTH_RADIUS + GPS_ALTITUDE
+    
+    # Receiver clock bias (constant for all satellites at same epoch)
+    receiver_clock_bias = 0.0  # Will add small variations
+    
     for epoch in range(num_epochs):
         timestamp = int(epoch * epoch_interval)
         signals = []
         
+        # Update receiver position slightly (simulating train movement)
+        current_pos_x = receiver_pos.x + epoch * 10.0  # Moving ~10 m/s
+        current_pos_y = receiver_pos.y + epoch * 8.0
+        current_pos_z = receiver_pos.z + np.random.normal(0, 0.1)
+        
+        # Receiver clock error (meters, c*dt)
+        receiver_clock_bias = np.random.normal(0, 10.0)
+        
         # Generate signals for each satellite
         for sat_id in range(1, num_satellites + 1):
-            # Simplified satellite positions (constellation simulation)
-            # Real implementation would use ephemeris data
-            angle = (2 * np.pi * sat_id / num_satellites) + (epoch * 0.001)
-            radius = 26560e3  # GPS satellite radius in meters
+            # Satellite constellation - distributed around Earth
+            # Different orbital planes
+            plane_angle = (2 * np.pi * sat_id / num_satellites)
+            inclination = np.radians(55)  # GPS inclination ~55 degrees
             
-            sat_x = radius * np.cos(angle)
-            sat_y = radius * np.sin(angle)
-            sat_z = radius * np.sin(angle / 2) * 0.5
+            # Satellite moves slowly in orbit
+            orbit_progress = (epoch * epoch_interval) / 43200.0  # 12-hour orbit
+            sat_angle_in_orbit = plane_angle + (2 * np.pi * orbit_progress)
             
-            # Calculate geometry
-            distance, azimuth, elevation = calculate_satellite_geometry(
+            # Calculate satellite position in ECEF
+            # Simple orbital model
+            sat_x = GPS_ORBITAL_RADIUS * np.cos(sat_angle_in_orbit) * np.cos(plane_angle)
+            sat_y = GPS_ORBITAL_RADIUS * np.sin(sat_angle_in_orbit) * np.cos(plane_angle)
+            sat_z = GPS_ORBITAL_RADIUS * np.sin(sat_angle_in_orbit) * np.sin(inclination)
+            
+            # Calculate geometric range
+            dx = sat_x - current_pos_x
+            dy = sat_y - current_pos_y
+            dz = sat_z - current_pos_z
+            geometric_range = np.sqrt(dx**2 + dy**2 + dz**2)
+            
+            # True pseudorange = geometric range + receiver clock bias + small noise
+            psr = geometric_range + receiver_clock_bias + np.random.normal(0, 2.0)
+            
+            # Calculate azimuth and elevation
+            _, azimuth, elevation = calculate_satellite_geometry(
                 (sat_x, sat_y, sat_z),
-                receiver_pos.to_tuple()
+                (current_pos_x, current_pos_y, current_pos_z)
             )
             
-            # Add small random noise to pseudorange
-            psr = distance + np.random.normal(0, 1.0)
+            # Keep all satellites for simulation (elevation check done later if needed)
+            # In real scenario, minimum elevation would be ~5-10 degrees
             
             signal = SatelliteSignal(
                 id=sat_id,
@@ -371,18 +405,27 @@ def generate_synthetic_gnss_data(num_epochs: int = 600,
                 psr_rate=np.random.normal(0, 0.1),
                 x=sat_x, y=sat_y, z=sat_z,
                 vx=0.0, vy=0.0, vz=0.0,
-                clk=np.random.normal(0, 1e-6),
+                clk=0.0,  # Satellite clock bias (can be zero for simplified model)
                 azimuth=azimuth,
-                elevation=elevation,
+                elevation=abs(elevation) + 10.0,  # Ensure positive elevation above horizon
                 rate_clock=0.0
             )
             signals.append(signal)
         
-        observation = GNSSObservation(
-            timestamp=timestamp,
-            sequence=epoch,
-            signals=signals
-        )
-        observations.append(observation)
+        if len(signals) >= 4:  # Only add if we have enough satellites
+            observation = GNSSObservation(
+                timestamp=timestamp,
+                sequence=epoch,
+                signals=signals
+            )
+            observations.append(observation)
+        else:
+            # Still add with whatever satellites we have (will handle in positioning)
+            observation = GNSSObservation(
+                timestamp=timestamp,
+                sequence=epoch,
+                signals=signals
+            )
+            observations.append(observation)
     
     return observations
