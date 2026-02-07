@@ -34,24 +34,25 @@ def main():
     print(f"  Duration: {n_epochs} seconds")
     print(f"  Satellites: {n_satellites}")
     
-    # Step 1: Generate data
-    print("\n[1/4] Generating satellite signals...")
-    signal_data = generate_satellite_signals(
-        n_epochs=n_epochs,
-        n_satellites=n_satellites,
-        noise_std=3.0,
-        random_seed=42
-    )
-    print(f"  ✓ Generated {n_epochs} epochs of GNSS signals")
-    
-    # Step 2: Generate reference trajectory
-    print("\n[2/4] Generating reference trajectory...")
+    # Step 1: Generate reference trajectory first
+    print("\n[1/4] Generating reference trajectory...")
     reference_trajectory = generate_reference_trajectory(
         n_epochs=n_epochs,
         velocity=50.0,  # 50 m/s (~180 km/h)
         trajectory_type='linear'
     )
     print(f"  ✓ Generated reference trajectory with {len(reference_trajectory)} points")
+    
+    # Step 2: Generate satellite signals matched to trajectory
+    print("\n[2/4] Generating satellite signals...")
+    from src.utils.data_loader import generate_satellite_signals_for_trajectory
+    signal_data = generate_satellite_signals_for_trajectory(
+        reference_trajectory=reference_trajectory,
+        n_satellites=n_satellites,
+        noise_std=3.0,
+        random_seed=42
+    )
+    print(f"  ✓ Generated {n_epochs} epochs of GNSS signals")
     
     # Step 3: Run simulation
     print("\n[3/4] Running CPN simulation...")
