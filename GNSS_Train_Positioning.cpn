@@ -414,7 +414,7 @@ fun applyPulseInterference (sig: SIGNAL) (time: REAL) : SIGNAL =
         val pulseInterval = 0.09  (* Ti = 90ms *)
         val pulsePeriod = pulseWidth + pulseInterval
         val timeInPeriod = Real.rem(time, pulsePeriod)
-        val amplitude = if timeInPeriod < pulseWidth then 3.5 else 0.0
+        val amplitude = if timeInPeriod &lt; pulseWidth then 3.5 else 0.0
     in
         {id = #id sig, 
          psr = #psr sig + amplitude,
@@ -433,7 +433,7 @@ fun isObstructedByMountain (sig: SIGNAL) (height: HEIGHT) (distance: DISTANCE) :
         val obstructionAngle = Math.atan(height / distance) * 180.0 / Math.pi
         val satElevation = #elevation sig
     in
-        satElevation < obstructionAngle
+        satElevation &lt; obstructionAngle
     end;
 
 (* Filter satellites obstructed by mountain *)
@@ -600,7 +600,7 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
           <text>1`(1, (0.0, 0.0, 0.0))</text>
         </initmark>
       </place>
-      <trans id="ID71" explicit="false">
+      <trans id="ID71" explicit="true">
         <posattr x="250.0" y="100.0"/>
         <fillattr colour="White" pattern="" filled="false"/>
         <lineattr colour="Black" thick="1" type="solid"/>
@@ -608,8 +608,27 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <text>GNSS Receiver</text>
         <box w="120.0" h="60.0"/>
         <binding x="7.2" y="1.8"/>
+        <code id="ID90">
+          <posattr x="250.0" y="170.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>output (VisibleBDS);
+action
+(
+  let
+    val (t, epoch, signalList) = SigInfo
+    val processedSignals = case Envi of
+        OpenArea => applyInterferenceToList signalList Normal 1.0
+      | Mountain => filterMountainObstructed signalList (100.0, 500.0)
+      | Tunnel => applyInterferenceToList signalList Normal 1.0
+  in
+    (t, epoch, processedSignals)
+  end
+)</text>
+        </code>
       </trans>
-      <trans id="ID72" explicit="false">
+      <trans id="ID72" explicit="true">
         <posattr x="650.0" y="100.0"/>
         <fillattr colour="White" pattern="" filled="false"/>
         <lineattr colour="Black" thick="1" type="solid"/>
@@ -617,8 +636,23 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <text>Position Solution</text>
         <box w="120.0" h="60.0"/>
         <binding x="7.2" y="1.8"/>
+        <code id="ID91">
+          <posattr x="650.0" y="170.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>output (position);
+action
+(
+  let
+    val (t, epoch, signalList) = VisibleBDS
+  in
+    calculateEKFPosition signalList epoch
+  end
+)</text>
+        </code>
       </trans>
-      <trans id="ID73" explicit="false">
+      <trans id="ID73" explicit="true">
         <posattr x="850.0" y="175.0"/>
         <fillattr colour="White" pattern="" filled="false"/>
         <lineattr colour="Black" thick="1" type="solid"/>
@@ -626,6 +660,23 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <text>Evaluation</text>
         <box w="100.0" h="60.0"/>
         <binding x="7.2" y="1.8"/>
+        <code id="ID92">
+          <posattr x="850.0" y="245.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>output (deltaPosition);
+action
+(
+  let
+    val (t1, pos1) = position
+    val (t2, pos2) = TrackCoordinate
+    val error = euclideanDistance pos1 pos2
+  in
+    (t1, pos1, error)
+  end
+)</text>
+        </code>
       </trans>
       <arc id="ID74" orientation="PtoT" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -635,6 +686,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID71"/>
         <placeend idref="ID56"/>
+        <annot id="ID82">
+          <posattr x="180.0" y="80.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>Envi</text>
+        </annot>
       </arc>
       <arc id="ID75" orientation="PtoT" order="2">
         <posattr x="0.0" y="0.0"/>
@@ -644,6 +702,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID71"/>
         <placeend idref="ID59"/>
+        <annot id="ID83">
+          <posattr x="280.0" y="80.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SigInfo</text>
+        </annot>
       </arc>
       <arc id="ID76" orientation="TtoP" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -653,6 +718,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID71"/>
         <placeend idref="ID62"/>
+        <annot id="ID84">
+          <posattr x="380.0" y="80.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>VisibleBDS</text>
+        </annot>
       </arc>
       <arc id="ID77" orientation="PtoT" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -662,6 +734,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID72"/>
         <placeend idref="ID62"/>
+        <annot id="ID85">
+          <posattr x="580.0" y="80.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>VisibleBDS</text>
+        </annot>
       </arc>
       <arc id="ID78" orientation="TtoP" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -671,6 +750,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID72"/>
         <placeend idref="ID64"/>
+        <annot id="ID86">
+          <posattr x="680.0" y="80.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>position</text>
+        </annot>
       </arc>
       <arc id="ID79" orientation="PtoT" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -680,6 +766,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID73"/>
         <placeend idref="ID64"/>
+        <annot id="ID87">
+          <posattr x="780.0" y="130.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>position</text>
+        </annot>
       </arc>
       <arc id="ID80" orientation="PtoT" order="2">
         <posattr x="0.0" y="0.0"/>
@@ -689,6 +782,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID73"/>
         <placeend idref="ID68"/>
+        <annot id="ID88">
+          <posattr x="880.0" y="210.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>TrackCoordinate</text>
+        </annot>
       </arc>
       <arc id="ID81" orientation="TtoP" order="1">
         <posattr x="0.0" y="0.0"/>
@@ -698,6 +798,13 @@ fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
         <arrowattr headsize="1.200" currentcyckle="2"/>
         <transend idref="ID73"/>
         <placeend idref="ID66"/>
+        <annot id="ID89">
+          <posattr x="880.0" y="140.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>deltaPosition</text>
+        </annot>
       </arc>
     </page>
   </cpnet>
