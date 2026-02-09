@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE workspaceElements PUBLIC "-//CPN//DTD CPNXML 1.0//EN" "http://cpntools.org/DTD/6/cpn.dtd">
+<workspaceElements>
+  <generator tool="CPN Tools" version="4.0.1" format="6"/>
+  <cpnet>
+    <globbox>
+      <block id="ID1">
+        <id>Standard priorities</id>
+        <ml id="ID2">val P_HIGH = 100;
+val P_NORMAL = 1000;
+val P_LOW = 10000;</ml>
+      </block>
+      <block id="ID3">
+        <id>Color Set Declarations</id>
+        <color id="ID4">
+          <id>BOOL</id>
+          <bool/>
+        </color>
+        <color id="ID5">
+          <id>INT</id>
+          <int/>
+        </color>
+        <color id="ID6">
+          <id>INTTIME</id>
+          <timed>
+            <int/>
+          </timed>
+        </color>
+        <color id="ID7">
+          <id>REAL</id>
+          <real/>
+        </color>
+        <color id="ID8">
+          <id>SIGNAL</id>
+          <record>
+            <recordfield>
+              <id>id</id>
+              <sort>INT</sort>
+            </recordfield>
+            <recordfield>
+              <id>psr</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>psr_rate</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>x</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>y</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>z</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>vx</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>vy</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>vz</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>clk</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>azimuth</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>elevation</id>
+              <sort>REAL</sort>
+            </recordfield>
+            <recordfield>
+              <id>Rate_clock</id>
+              <sort>REAL</sort>
+            </recordfield>
+          </record>
+        </color>
+        <color id="ID9">
+          <id>SIGNALlist</id>
+          <list>
+            <sort>SIGNAL</sort>
+          </list>
+        </color>
+        <color id="ID10">
+          <id>SIGNALLIST</id>
+          <product>
+            <sort>INT</sort>
+            <sort>INT</sort>
+            <sort>SIGNALlist</sort>
+          </product>
+        </color>
+        <color id="ID11">
+          <id>SCENARIO</id>
+          <enum>
+            <id>OpenArea</id>
+            <id>Mountain</id>
+            <id>Tunnel</id>
+          </enum>
+        </color>
+        <color id="ID12">
+          <id>STATEINFE</id>
+          <enum>
+            <id>AM</id>
+            <id>FM</id>
+            <id>Pulse</id>
+            <id>Normal</id>
+          </enum>
+        </color>
+        <color id="ID13">
+          <id>Coordinate</id>
+          <product>
+            <sort>REAL</sort>
+            <sort>REAL</sort>
+            <sort>REAL</sort>
+          </product>
+        </color>
+        <color id="ID14">
+          <id>COORDINATE</id>
+          <product>
+            <sort>INT</sort>
+            <sort>Coordinate</sort>
+          </product>
+        </color>
+        <color id="ID15">
+          <id>DELTAPOSITION</id>
+          <product>
+            <sort>INT</sort>
+            <sort>Coordinate</sort>
+            <sort>REAL</sort>
+          </product>
+        </color>
+        <color id="ID16">
+          <id>TIMESTAMP</id>
+          <alias>
+            <sort>REAL</sort>
+          </alias>
+        </color>
+        <color id="ID17">
+          <id>HEIGHT</id>
+          <alias>
+            <sort>REAL</sort>
+          </alias>
+        </color>
+        <color id="ID18">
+          <id>DISTANCE</id>
+          <alias>
+            <sort>REAL</sort>
+          </alias>
+        </color>
+        <color id="ID19">
+          <id>MOUNTAIN</id>
+          <product>
+            <sort>HEIGHT</sort>
+            <sort>DISTANCE</sort>
+          </product>
+        </color>
+        <color id="ID20">
+          <id>TUNNELSTATE</id>
+          <enum>
+            <id>InTunnel</id>
+            <id>JustOut</id>
+            <id>OutTunnel</id>
+          </enum>
+        </color>
+        <color id="ID21">
+          <id>TUNNEL</id>
+          <alias>
+            <sort>REAL</sort>
+          </alias>
+        </color>
+        <color id="ID22">
+          <id>MUTEX</id>
+          <unit/>
+        </color>
+      </block>
+      <block id="ID23">
+        <id>Variable Declarations</id>
+        <var id="ID24">
+          <type>
+            <id>SIGNALLIST</id>
+          </type>
+          <id>VisibleBDS</id>
+        </var>
+        <var id="ID25">
+          <type>
+            <id>SIGNALLIST</id>
+          </type>
+          <id>SigInfo</id>
+        </var>
+        <var id="ID26">
+          <type>
+            <id>SCENARIO</id>
+          </type>
+          <id>Envi</id>
+        </var>
+        <var id="ID27">
+          <type>
+            <id>SIGNALLIST</id>
+          </type>
+          <id>InterferenceData</id>
+        </var>
+        <var id="ID28">
+          <type>
+            <id>SIGNALLIST</id>
+          </type>
+          <id>InterferenceData1</id>
+        </var>
+        <var id="ID29">
+          <type>
+            <id>MUTEX</id>
+          </type>
+          <id>Mutex</id>
+        </var>
+        <var id="ID30">
+          <type>
+            <id>STATEINFE</id>
+          </type>
+          <id>StateInterference</id>
+        </var>
+        <var id="ID31">
+          <type>
+            <id>DELTAPOSITION</id>
+          </type>
+          <id>deltaPosition</id>
+        </var>
+        <var id="ID32">
+          <type>
+            <id>BOOL</id>
+          </type>
+          <id>bAM</id>
+        </var>
+        <var id="ID33">
+          <type>
+            <id>BOOL</id>
+          </type>
+          <id>bFM</id>
+        </var>
+        <var id="ID34">
+          <type>
+            <id>BOOL</id>
+          </type>
+          <id>bPulse</id>
+        </var>
+        <var id="ID35">
+          <type>
+            <id>REAL</id>
+          </type>
+          <id>AMError</id>
+        </var>
+        <var id="ID36">
+          <type>
+            <id>REAL</id>
+          </type>
+          <id>FMError</id>
+        </var>
+        <var id="ID37">
+          <type>
+            <id>REAL</id>
+          </type>
+          <id>PulseError</id>
+        </var>
+        <var id="ID38">
+          <type>
+            <id>TUNNELSTATE</id>
+          </type>
+          <id>TrainPosition</id>
+        </var>
+        <var id="ID39">
+          <type>
+            <id>TUNNELSTATE</id>
+          </type>
+          <id>TrainPosition1</id>
+        </var>
+        <var id="ID40">
+          <type>
+            <id>TIMESTAMP</id>
+          </type>
+          <id>DelayError</id>
+        </var>
+        <var id="ID41">
+          <type>
+            <id>TIMESTAMP</id>
+          </type>
+          <id>TimeCounter</id>
+        </var>
+        <var id="ID42">
+          <type>
+            <id>TIMESTAMP</id>
+          </type>
+          <id>TimeCounter1</id>
+        </var>
+        <var id="ID43">
+          <type>
+            <id>COORDINATE</id>
+          </type>
+          <id>position</id>
+        </var>
+        <var id="ID44">
+          <type>
+            <id>COORDINATE</id>
+          </type>
+          <id>TrackCoordinate</id>
+        </var>
+        <var id="ID45">
+          <type>
+            <id>COORDINATE</id>
+          </type>
+          <id>BDS_ENU</id>
+        </var>
+        <var id="ID46">
+          <type>
+            <id>INT</id>
+          </type>
+          <id>t</id>
+        </var>
+        <var id="ID47">
+          <type>
+            <id>INT</id>
+          </type>
+          <id>epoch</id>
+        </var>
+        <var id="ID48">
+          <type>
+            <id>SIGNALlist</id>
+          </type>
+          <id>signalList</id>
+        </var>
+        <var id="ID49">
+          <type>
+            <id>SIGNAL</id>
+          </type>
+          <id>sig</id>
+        </var>
+        <var id="ID50">
+          <type>
+            <id>MOUNTAIN</id>
+          </type>
+          <id>mountain</id>
+        </var>
+        <var id="ID51">
+          <type>
+            <id>HEIGHT</id>
+          </type>
+          <id>h</id>
+        </var>
+        <var id="ID52">
+          <type>
+            <id>DISTANCE</id>
+          </type>
+          <id>d</id>
+        </var>
+      </block>
+      <block id="ID53">
+        <id>Helper Functions</id>
+        <ml id="ID54">(* Calculate Euclidean distance between two 3D coordinates *)
+fun euclideanDistance ((x1, y1, z1): Coordinate) ((x2, y2, z2): Coordinate) : REAL =
+    Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
+
+(* Apply AM interference to GNSS signal *)
+fun applyAMInterference (sig: SIGNAL) (time: REAL) : SIGNAL =
+    let
+        val modulationDepth = 0.5
+        val carrierFreq = 1575.42e6  (* GNSS L1 band in Hz *)
+        val envelopeFreq = 1.0       (* 1 Hz modulation *)
+        val envelope = 1.0 + modulationDepth * Math.sin(2.0 * Math.pi * envelopeFreq * time)
+        val errorMag = envelope * 2.0 (* Error magnitude in meters *)
+    in
+        {id = #id sig, 
+         psr = #psr sig + errorMag,
+         psr_rate = #psr_rate sig,
+         x = #x sig, y = #y sig, z = #z sig,
+         vx = #vx sig, vy = #vy sig, vz = #vz sig,
+         clk = #clk sig,
+         azimuth = #azimuth sig,
+         elevation = #elevation sig,
+         Rate_clock = #Rate_clock sig}
+    end;
+
+(* Apply FM interference to GNSS signal *)
+fun applyFMInterference (sig: SIGNAL) (time: REAL) : SIGNAL =
+    let
+        val carrierFreq = 1575.42e6  (* GNSS L1 band in Hz *)
+        val freqDev = 75000.0         (* 75 kHz frequency deviation *)
+        val freqShift = freqDev * Math.sin(2.0 * Math.pi * 0.5 * time)
+        val errorMag = 3.0 * Math.abs(Math.sin(freqShift * time)) (* Error in meters *)
+    in
+        {id = #id sig, 
+         psr = #psr sig + errorMag,
+         psr_rate = #psr_rate sig,
+         x = #x sig, y = #y sig, z = #z sig,
+         vx = #vx sig, vy = #vy sig, vz = #vz sig,
+         clk = #clk sig,
+         azimuth = #azimuth sig,
+         elevation = #elevation sig,
+         Rate_clock = #Rate_clock sig}
+    end;
+
+(* Apply Pulse interference to GNSS signal *)
+fun applyPulseInterference (sig: SIGNAL) (time: REAL) : SIGNAL =
+    let
+        val pulseWidth = 0.01  (* Tp = 10ms *)
+        val pulseInterval = 0.09  (* Ti = 90ms *)
+        val pulsePeriod = pulseWidth + pulseInterval
+        val timeInPeriod = Real.rem(time, pulsePeriod)
+        val amplitude = if timeInPeriod < pulseWidth then 3.5 else 0.0
+    in
+        {id = #id sig, 
+         psr = #psr sig + amplitude,
+         psr_rate = #psr_rate sig,
+         x = #x sig, y = #y sig, z = #z sig,
+         vx = #vx sig, vy = #vy sig, vz = #vz sig,
+         clk = #clk sig,
+         azimuth = #azimuth sig,
+         elevation = #elevation sig,
+         Rate_clock = #Rate_clock sig}
+    end;
+
+(* Check if satellite is obstructed by mountain *)
+fun isObstructedByMountain (sig: SIGNAL) (height: HEIGHT) (distance: DISTANCE) : bool =
+    let
+        val obstructionAngle = Math.atan(height / distance) * 180.0 / Math.pi
+        val satElevation = #elevation sig
+    in
+        satElevation < obstructionAngle
+    end;
+
+(* Filter satellites obstructed by mountain *)
+fun filterMountainObstructed (signals: SIGNALlist) (mountain: MOUNTAIN) : SIGNALlist =
+    let
+        val (height, distance) = mountain
+        fun notObstructed sig = not (isObstructedByMountain sig height distance)
+    in
+        List.filter notObstructed signals
+    end;
+
+(* Apply tunnel error based on tunnel state *)
+fun applyTunnelError (sig: SIGNAL) (state: TUNNELSTATE) (timeCounter: REAL) : SIGNAL =
+    let
+        val errorMag = case state of
+            InTunnel => 0.0  (* No signal *)
+          | JustOut => 15.0 * Math.exp(~0.1 * timeCounter)  (* High error decreasing exponentially *)
+          | OutTunnel => 0.5  (* Stable low error *)
+    in
+        {id = #id sig, 
+         psr = #psr sig + errorMag,
+         psr_rate = #psr_rate sig,
+         x = #x sig, y = #y sig, z = #z sig,
+         vx = #vx sig, vy = #vy sig, vz = #vz sig,
+         clk = #clk sig,
+         azimuth = #azimuth sig,
+         elevation = #elevation sig,
+         Rate_clock = #Rate_clock sig}
+    end;
+
+(* Apply interference list to signal list *)
+fun applyInterferenceToList (signals: SIGNALlist) (intType: STATEINFE) (time: REAL) : SIGNALlist =
+    case intType of
+        AM => List.map (fn sig => applyAMInterference sig time) signals
+      | FM => List.map (fn sig => applyFMInterference sig time) signals
+      | Pulse => List.map (fn sig => applyPulseInterference sig time) signals
+      | Normal => signals;
+
+(* Simple EKF position calculation - simplified version *)
+fun calculateEKFPosition (signals: SIGNALlist) (epoch: INT) : COORDINATE =
+    let
+        val numSats = List.length signals
+        (* Simplified position calculation - weighted average *)
+        val sumX = List.foldl (fn (sig, acc) => acc + #x sig) 0.0 signals
+        val sumY = List.foldl (fn (sig, acc) => acc + #y sig) 0.0 signals
+        val sumZ = List.foldl (fn (sig, acc) => acc + #z sig) 0.0 signals
+        val n = Real.fromInt numSats
+        val avgPos = (sumX / n, sumY / n, sumZ / n)
+    in
+        (epoch, avgPos)
+    end;</ml>
+      </block>
+    </globbox>
+    <page id="ID55">
+      <pageattr name="Top Level"/>
+      <place id="ID56">
+        <posattr x="150.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Scenario</text>
+        <ellipse w="60.0" h="40.0"/>
+        <type id="ID57">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SCENARIO</text>
+        </type>
+        <initmark id="ID58">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`OpenArea</text>
+        </initmark>
+      </place>
+      <place id="ID59">
+        <posattr x="350.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>GNSS Signal</text>
+        <ellipse w="80.0" h="40.0"/>
+        <type id="ID60">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SIGNALLIST</text>
+        </type>
+        <initmark id="ID61">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`(1, 1, [])</text>
+        </initmark>
+      </place>
+      <place id="ID62">
+        <posattr x="550.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>GNSS Observation</text>
+        <ellipse w="100.0" h="40.0"/>
+        <type id="ID63">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SIGNALLIST</text>
+        </type>
+      </place>
+      <place id="ID64">
+        <posattr x="750.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Position</text>
+        <ellipse w="80.0" h="40.0"/>
+        <type id="ID65">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>COORDINATE</text>
+        </type>
+      </place>
+      <place id="ID66">
+        <posattr x="950.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Delta Position</text>
+        <ellipse w="100.0" h="40.0"/>
+        <type id="ID67">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>DELTAPOSITION</text>
+        </type>
+      </place>
+      <place id="ID68">
+        <posattr x="950.0" y="250.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Reference Position</text>
+        <ellipse w="120.0" h="40.0"/>
+        <type id="ID69">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>COORDINATE</text>
+        </type>
+        <initmark id="ID70">
+          <posattr x="0.0" y="0.0"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`(1, (0.0, 0.0, 0.0))</text>
+        </initmark>
+      </place>
+      <trans id="ID71" explicit="false">
+        <posattr x="250.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>GNSS Receiver</text>
+        <box w="120.0" h="60.0"/>
+        <binding x="7.2" y="1.8"/>
+      </trans>
+      <trans id="ID72" explicit="false">
+        <posattr x="650.0" y="100.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Position Solution</text>
+        <box w="120.0" h="60.0"/>
+        <binding x="7.2" y="1.8"/>
+      </trans>
+      <trans id="ID73" explicit="false">
+        <posattr x="850.0" y="175.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Evaluation</text>
+        <box w="100.0" h="60.0"/>
+        <binding x="7.2" y="1.8"/>
+      </trans>
+      <arc id="ID74" orientation="PtoT" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID71"/>
+        <placeend idref="ID56"/>
+      </arc>
+      <arc id="ID75" orientation="PtoT" order="2">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID71"/>
+        <placeend idref="ID59"/>
+      </arc>
+      <arc id="ID76" orientation="TtoP" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID71"/>
+        <placeend idref="ID62"/>
+      </arc>
+      <arc id="ID77" orientation="PtoT" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID72"/>
+        <placeend idref="ID62"/>
+      </arc>
+      <arc id="ID78" orientation="TtoP" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID72"/>
+        <placeend idref="ID64"/>
+      </arc>
+      <arc id="ID79" orientation="PtoT" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID73"/>
+        <placeend idref="ID64"/>
+      </arc>
+      <arc id="ID80" orientation="PtoT" order="2">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID73"/>
+        <placeend idref="ID68"/>
+      </arc>
+      <arc id="ID81" orientation="TtoP" order="1">
+        <posattr x="0.0" y="0.0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200" currentcyckle="2"/>
+        <transend idref="ID73"/>
+        <placeend idref="ID66"/>
+      </arc>
+    </page>
+  </cpnet>
+</workspaceElements>
