@@ -1,0 +1,1097 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE workspaceElements PUBLIC "-//CPN//DTD CPNXML 1.0//EN" "http://cpntools.org/DTD/6/cpn.dtd">
+<workspaceElements>
+  <generator tool="CPN Tools" version="4.0.1" format="6"/>
+  <cpnet>
+    <globbox>
+      <block id="ID1">
+        <id>Global Declarations</id>
+        <ml id="ID2"><![CDATA[
+(* ========================================== *)
+(* GNSS Train Positioning CPN Model          *)
+(* Based on Petrii.PDF paper specifications  *)
+(* ========================================== *)
+
+(* ========================================== *)
+(* COLOR SET DEFINITIONS                     *)
+(* ========================================== *)
+
+(* Basic color sets *)
+colset INT = int;
+colset REAL = real;
+colset BOOL = bool;
+colset STRING = string;
+colset TIME = int;
+
+(* GNSS Signal representation *)
+colset SIGNAL = record 
+  id: INT *
+  frequency: REAL *
+  amplitude: REAL *
+  phase: REAL *
+  snr: REAL;
+
+colset SIGNALLIST = list SIGNAL;
+
+(* Coordinate system *)
+colset COORDINATE = record
+  x: REAL *
+  y: REAL *
+  z: REAL *
+  timestamp: TIME;
+
+colset COORDINATELIST = list COORDINATE;
+
+(* State information for EKF *)
+colset STATEINFE = record
+  position: COORDINATE *
+  velocity: REAL *
+  acceleration: REAL *
+  covariance: REAL;
+
+(* Scenario definition *)
+colset SCENARIO = record
+  scenarioId: INT *
+  scenarioType: STRING *
+  interferenceLevel: REAL *
+  tunnelLength: REAL *
+  mountainHeight: REAL;
+
+(* Measurement data *)
+colset MEASUREMENT = record
+  signalData: SIGNALLIST *
+  timestamp: TIME *
+  satelliteId: INT;
+
+colset MEASUREMENTLIST = list MEASUREMENT;
+
+(* Error model *)
+colset ERROR = record
+  errorType: STRING *
+  magnitude: REAL *
+  timestamp: TIME;
+
+colset ERRORLIST = list ERROR;
+
+(* Position solution *)
+colset POSITION = record
+  estimated: COORDINATE *
+  actual: COORDINATE *
+  error: REAL *
+  timestamp: TIME;
+
+colset POSITIONLIST = list POSITION;
+
+(* Evaluation results *)
+colset EVALUATION = record
+  scenario: STRING *
+  meanError: REAL *
+  maxError: REAL *
+  rmsError: REAL *
+  successRate: REAL;
+
+colset EVALUATIONLIST = list EVALUATION;
+
+(* Filter state *)
+colset FILTERSTATE = record
+  state: STATEINFE *
+  kalmanGain: REAL *
+  innovation: REAL;
+
+(* Control signals *)
+colset CONTROL = with Start | Stop | Reset | Process;
+
+(* Status *)
+colset STATUS = with Ready | Processing | Complete | Error;
+
+(* ========================================== *)
+(* VARIABLE DECLARATIONS                     *)
+(* ========================================== *)
+
+var sig: SIGNAL;
+var sigList: SIGNALLIST;
+var coord: COORDINATE;
+var coordList: COORDINATELIST;
+var state: STATEINFE;
+var scenario: SCENARIO;
+var measurement: MEASUREMENT;
+var measList: MEASUREMENTLIST;
+var err: ERROR;
+var errList: ERRORLIST;
+var pos: POSITION;
+var posList: POSITIONLIST;
+var eval: EVALUATION;
+var evalList: EVALUATIONLIST;
+var filterState: FILTERSTATE;
+var ctrl: CONTROL;
+var status: STATUS;
+
+var x, y, z: REAL;
+var v, a: REAL;
+var t, dt: TIME;
+var snr, freq, amp, phase: REAL;
+var id, satId: INT;
+var scenType: STRING;
+var intLevel, tunnelLen, mountHeight: REAL;
+
+(* ========================================== *)
+(* HELPER FUNCTIONS                          *)
+(* ========================================== *)
+
+(* Create initial coordinate *)
+fun makeCoord(x_val: real, y_val: real, z_val: real, t_val: int) : COORDINATE =
+  {x=x_val, y=y_val, z=z_val, timestamp=t_val};
+
+(* Create initial signal *)
+fun makeSignal(id_val: int, freq_val: real, amp_val: real, phase_val: real, snr_val: real) : SIGNAL =
+  {id=id_val, frequency=freq_val, amplitude=amp_val, phase=phase_val, snr=snr_val};
+
+(* Create initial state *)
+fun makeState(pos: COORDINATE, vel: real, acc: real, cov: real) : STATEINFE =
+  {position=pos, velocity=vel, acceleration=acc, covariance=cov};
+
+(* ========================================== *)
+(* INTERFERENCE FUNCTIONS                    *)
+(* ========================================== *)
+
+(* AM Interference *)
+fun applyAMInterference(sig: SIGNAL, level: real) : SIGNAL =
+  let
+    val newAmp = #amplitude sig * (1.0 + level * Math.sin(2.0 * Math.pi * 0.1))
+    val newSNR = #snr sig - level * 3.0
+  in
+    {id = #id sig, frequency = #frequency sig, amplitude = newAmp, 
+     phase = #phase sig, snr = newSNR}
+  end;
+
+(* FM Interference *)
+fun applyFMInterference(sig: SIGNAL, level: real) : SIGNAL =
+  let
+    val newPhase = #phase sig + level * Math.sin(2.0 * Math.pi * 0.2)
+    val newSNR = #snr sig - level * 2.5
+  in
+    {id = #id sig, frequency = #frequency sig, amplitude = #amplitude sig,
+     phase = newPhase, snr = newSNR}
+  end;
+
+(* Pulse Interference *)
+fun applyPulseInterference(sig: SIGNAL, level: real) : SIGNAL =
+  let
+    val newAmp = if level > 0.5 then 0.1 * #amplitude sig else #amplitude sig
+    val newSNR = if level > 0.5 then #snr sig - 10.0 else #snr sig
+  in
+    {id = #id sig, frequency = #frequency sig, amplitude = newAmp,
+     phase = #phase sig, snr = newSNR}
+  end;
+
+(* Apply all interferences *)
+fun applyInterference(sig: SIGNAL, scenario: SCENARIO) : SIGNAL =
+  let
+    val level = #interferenceLevel scenario
+    val sig1 = applyAMInterference(sig, level * 0.3)
+    val sig2 = applyFMInterference(sig1, level * 0.3)
+    val sig3 = applyPulseInterference(sig2, level * 0.4)
+  in
+    sig3
+  end;
+
+(* ========================================== *)
+(* MOUNTAIN FILTERING                        *)
+(* ========================================== *)
+
+fun mountainFiltering(coord: COORDINATE, mountHeight: real) : COORDINATE =
+  let
+    val shadowing = if mountHeight > 1000.0 then 0.7 else 0.9
+    val errorX = #x coord * (1.0 - shadowing) * 0.1
+    val errorY = #y coord * (1.0 - shadowing) * 0.1
+    val errorZ = #z coord + mountHeight * 0.05
+  in
+    {x = #x coord + errorX, y = #y coord + errorY, 
+     z = errorZ, timestamp = #timestamp coord}
+  end;
+
+(* ========================================== *)
+(* TUNNEL ERROR MODELING                     *)
+(* ========================================== *)
+
+fun tunnelError(coord: COORDINATE, tunnelLen: real) : COORDINATE =
+  let
+    val signalLoss = if tunnelLen > 100.0 then 0.8 else 0.5
+    val errorX = #x coord * signalLoss * 0.2
+    val errorY = #y coord * signalLoss * 0.2
+    val errorZ = #z coord * signalLoss * 0.15
+  in
+    {x = #x coord + errorX, y = #y coord + errorY,
+     z = #z coord + errorZ, timestamp = #timestamp coord}
+  end;
+
+(* ========================================== *)
+(* EXTENDED KALMAN FILTER (EKF)             *)
+(* ========================================== *)
+
+(* EKF Prediction step *)
+fun ekfPredict(state: STATEINFE, dt: real) : STATEINFE =
+  let
+    val oldPos = #position state
+    val oldVel = #velocity state
+    val oldAcc = #acceleration state
+    
+    (* Predict new position *)
+    val newX = #x oldPos + oldVel * dt + 0.5 * oldAcc * dt * dt
+    val newY = #y oldPos + oldVel * dt + 0.5 * oldAcc * dt * dt
+    val newZ = #z oldPos
+    val newPos = {x=newX, y=newY, z=newZ, timestamp=(#timestamp oldPos) + Real.floor(dt)}
+    
+    (* Predict new velocity *)
+    val newVel = oldVel + oldAcc * dt
+    
+    (* Process noise covariance *)
+    val newCov = #covariance state + 0.01
+  in
+    {position=newPos, velocity=newVel, acceleration=oldAcc, covariance=newCov}
+  end;
+
+(* EKF Update step *)
+fun ekfUpdate(predictedState: STATEINFE, measurement: COORDINATE) : STATEINFE =
+  let
+    val predPos = #position predictedState
+    val measNoise = 1.0
+    
+    (* Kalman gain *)
+    val K = #covariance predictedState / (#covariance predictedState + measNoise)
+    
+    (* Innovation *)
+    val innovX = #x measurement - #x predPos
+    val innovY = #y measurement - #y predPos
+    val innovZ = #z measurement - #z predPos
+    
+    (* Update position *)
+    val newX = #x predPos + K * innovX
+    val newY = #y predPos + K * innovY
+    val newZ = #z predPos + K * innovZ
+    val newPos = {x=newX, y=newY, z=newZ, timestamp=#timestamp measurement}
+    
+    (* Update covariance *)
+    val newCov = (1.0 - K) * #covariance predictedState
+  in
+    {position=newPos, velocity=#velocity predictedState, 
+     acceleration=#acceleration predictedState, covariance=newCov}
+  end;
+
+(* Complete EKF cycle *)
+fun ekfCycle(state: STATEINFE, measurement: COORDINATE, dt: real) : STATEINFE =
+  let
+    val predicted = ekfPredict(state, dt)
+    val updated = ekfUpdate(predicted, measurement)
+  in
+    updated
+  end;
+
+(* ========================================== *)
+(* POSITION CALCULATION                      *)
+(* ========================================== *)
+
+fun calculatePosition(sigList: SIGNALLIST, scenario: SCENARIO) : COORDINATE =
+  let
+    (* Apply interferences *)
+    val filteredSigs = map (fn sig => applyInterference(sig, scenario)) sigList
+    
+    (* Simple trilateration (simplified) *)
+    val avgX = if List.length filteredSigs > 0 then
+                 List.foldl (fn (s, acc) => acc + #amplitude s) 0.0 filteredSigs / 
+                 real(List.length filteredSigs)
+               else 0.0
+    val avgY = avgX * 0.8
+    val avgZ = 100.0
+    
+    val baseCoord = {x=avgX * 1000.0, y=avgY * 1000.0, z=avgZ, timestamp=0}
+    
+    (* Apply environmental effects *)
+    val coord1 = mountainFiltering(baseCoord, #mountainHeight scenario)
+    val coord2 = tunnelError(coord1, #tunnelLength scenario)
+  in
+    coord2
+  end;
+
+(* ========================================== *)
+(* EVALUATION FUNCTIONS                      *)
+(* ========================================== *)
+
+fun calculateError(estimated: COORDINATE, actual: COORDINATE) : real =
+  let
+    val dx = #x estimated - #x actual
+    val dy = #y estimated - #y actual
+    val dz = #z estimated - #z actual
+  in
+    Math.sqrt(dx*dx + dy*dy + dz*dz)
+  end;
+
+fun evaluatePerformance(posList: POSITIONLIST) : EVALUATION =
+  let
+    val errors = map (fn p => #error p) posList
+    val n = real(List.length errors)
+    
+    val meanErr = if n > 0.0 then (List.foldl op+ 0.0 errors) / n else 0.0
+    val maxErr = if List.length errors > 0 then List.foldl Real.max 0.0 errors else 0.0
+    val rmsErr = if n > 0.0 then 
+                   Math.sqrt((List.foldl (fn (e, acc) => acc + e*e) 0.0 errors) / n)
+                 else 0.0
+    val successRate = if n > 0.0 then
+                        real(List.length(List.filter (fn e => e < 10.0) errors)) / n
+                      else 0.0
+  in
+    {scenario="General", meanError=meanErr, maxError=maxErr, 
+     rmsError=rmsErr, successRate=successRate}
+  end;
+
+(* ========================================== *)
+(* INITIAL DATA GENERATION                   *)
+(* ========================================== *)
+
+fun generateTestScenario(scenId: int) : SCENARIO =
+  {scenarioId=scenId, scenarioType="Urban", interferenceLevel=0.3,
+   tunnelLength=200.0, mountainHeight=500.0};
+
+fun generateTestSignals() : SIGNALLIST =
+  [makeSignal(1, 1575.42, 1.0, 0.0, 45.0),
+   makeSignal(2, 1575.42, 0.9, 0.5, 43.0),
+   makeSignal(3, 1575.42, 0.95, 1.0, 44.0),
+   makeSignal(4, 1575.42, 0.85, 1.5, 42.0)];
+
+fun generateInitialState() : STATEINFE =
+  makeState(makeCoord(0.0, 0.0, 100.0, 0), 20.0, 0.5, 1.0);
+
+]]></ml>
+      </block>
+    </globbox>
+    
+    <!-- ============================================ -->
+    <!-- PAGE: Top Level                              -->
+    <!-- ============================================ -->
+    <page id="ID3">
+      <pageattr name="Top Level"/>
+      <place id="ID4">
+        <posattr x="100" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Scenario</text>
+        <ellipse w="60" h="40"/>
+        <type id="ID5">
+          <posattr x="100" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SCENARIO</text>
+        </type>
+        <initmark id="ID6">
+          <posattr x="100" y="130"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`generateTestScenario(1)</text>
+        </initmark>
+      </place>
+      
+      <place id="ID7">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>GNSS_Signals</text>
+        <ellipse w="80" h="40"/>
+        <type id="ID8">
+          <posattr x="300" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SIGNALLIST</text>
+        </type>
+        <initmark id="ID9">
+          <posattr x="300" y="130"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`generateTestSignals()</text>
+        </initmark>
+      </place>
+      
+      <place id="ID10">
+        <posattr x="500" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>FilterState</text>
+        <ellipse w="70" h="40"/>
+        <type id="ID11">
+          <posattr x="500" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>STATEINFE</text>
+        </type>
+        <initmark id="ID12">
+          <posattr x="500" y="130"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`generateInitialState()</text>
+        </initmark>
+      </place>
+      
+      <place id="ID13">
+        <posattr x="300" y="250"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>RawPosition</text>
+        <ellipse w="70" h="40"/>
+        <type id="ID14">
+          <posattr x="300" y="220"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>COORDINATE</text>
+        </type>
+      </place>
+      
+      <place id="ID15">
+        <posattr x="300" y="400"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>EstimatedPosition</text>
+        <ellipse w="90" h="40"/>
+        <type id="ID16">
+          <posattr x="300" y="370"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>POSITION</text>
+        </type>
+      </place>
+      
+      <place id="ID17">
+        <posattr x="300" y="550"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Results</text>
+        <ellipse w="60" h="40"/>
+        <type id="ID18">
+          <posattr x="300" y="520"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>EVALUATION</text>
+        </type>
+      </place>
+      
+      <!-- Transition: ProcessSignals -->
+      <trans id="ID19" explicit="false">
+        <posattr x="300" y="175"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>ProcessSignals</text>
+        <box w="60" h="40"/>
+        <code id="ID20">
+          <posattr x="250" y="145"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+calculatePosition(sigList, scenario)</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: Scenario -> ProcessSignals -->
+      <arc id="ID21" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID19"/>
+        <placeend idref="ID4"/>
+        <annot id="ID22">
+          <posattr x="150" y="140"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>scenario</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: GNSS_Signals -> ProcessSignals -->
+      <arc id="ID23" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID19"/>
+        <placeend idref="ID7"/>
+        <annot id="ID24">
+          <posattr x="300" y="140"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>sigList</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: ProcessSignals -> RawPosition -->
+      <arc id="ID25" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID19"/>
+        <placeend idref="ID13"/>
+        <annot id="ID26">
+          <posattr x="310" y="210"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>coord</text>
+        </annot>
+      </arc>
+      
+      <!-- Transition: ApplyEKF -->
+      <trans id="ID27" explicit="false">
+        <posattr x="300" y="325"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>ApplyEKF</text>
+        <box w="60" h="40"/>
+        <code id="ID28">
+          <posattr x="350" y="305"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+let
+  val newState = ekfCycle(state, coord, 1.0)
+  val err = calculateError(#position newState, coord)
+in
+  {estimated=#position newState, actual=coord, error=err, timestamp=#timestamp coord}
+end</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: RawPosition -> ApplyEKF -->
+      <arc id="ID29" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID27"/>
+        <placeend idref="ID13"/>
+        <annot id="ID30">
+          <posattr x="310" y="280"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>coord</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: FilterState -> ApplyEKF -->
+      <arc id="ID31" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID27"/>
+        <placeend idref="ID10"/>
+        <annot id="ID32">
+          <posattr x="420" y="250"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>state</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: ApplyEKF -> EstimatedPosition -->
+      <arc id="ID33" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID27"/>
+        <placeend idref="ID15"/>
+        <annot id="ID34">
+          <posattr x="310" y="360"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>pos</text>
+        </annot>
+      </arc>
+      
+      <!-- Transition: Evaluate -->
+      <trans id="ID35" explicit="false">
+        <posattr x="300" y="475"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Evaluate</text>
+        <box w="60" h="40"/>
+        <code id="ID36">
+          <posattr x="350" y="465"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+evaluatePerformance([pos])</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: EstimatedPosition -> Evaluate -->
+      <arc id="ID37" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID35"/>
+        <placeend idref="ID15"/>
+        <annot id="ID38">
+          <posattr x="310" y="435"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>pos</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: Evaluate -> Results -->
+      <arc id="ID39" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID35"/>
+        <placeend idref="ID17"/>
+        <annot id="ID40">
+          <posattr x="310" y="510"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>eval</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- ============================================ -->
+    <!-- PAGE: GNSS Receiver Module                   -->
+    <!-- ============================================ -->
+    <page id="ID41">
+      <pageattr name="GNSS Receiver"/>
+      
+      <place id="ID42">
+        <posattr x="150" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>RawSignals</text>
+        <ellipse w="70" h="40"/>
+        <type id="ID43">
+          <posattr x="150" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SIGNALLIST</text>
+        </type>
+      </place>
+      
+      <place id="ID44">
+        <posattr x="350" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>ProcessedSignals</text>
+        <ellipse w="90" h="40"/>
+        <type id="ID45">
+          <posattr x="350" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SIGNALLIST</text>
+        </type>
+      </place>
+      
+      <place id="ID46">
+        <posattr x="250" y="200"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>InterferenceModel</text>
+        <ellipse w="100" h="40"/>
+        <type id="ID47">
+          <posattr x="250" y="170"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SCENARIO</text>
+        </type>
+      </place>
+      
+      <!-- Transition: ApplyInterference -->
+      <trans id="ID48" explicit="false">
+        <posattr x="250" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>ApplyInterference</text>
+        <box w="80" h="40"/>
+        <code id="ID49">
+          <posattr x="250" y="60"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+map (fn sig =&gt; applyInterference(sig, scenario)) sigList</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: RawSignals -> ApplyInterference -->
+      <arc id="ID50" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID48"/>
+        <placeend idref="ID42"/>
+        <annot id="ID51">
+          <posattr x="190" y="90"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>sigList</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: InterferenceModel -> ApplyInterference -->
+      <arc id="ID52" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID48"/>
+        <placeend idref="ID46"/>
+        <annot id="ID53">
+          <posattr x="260" y="150"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>scenario</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: ApplyInterference -> ProcessedSignals -->
+      <arc id="ID54" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID48"/>
+        <placeend idref="ID44"/>
+        <annot id="ID55">
+          <posattr x="310" y="90"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>sigList</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- ============================================ -->
+    <!-- PAGE: Position Solution                      -->
+    <!-- ============================================ -->
+    <page id="ID56">
+      <pageattr name="Position Solution"/>
+      
+      <place id="ID57">
+        <posattr x="150" y="150"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Measurements</text>
+        <ellipse w="80" h="40"/>
+        <type id="ID58">
+          <posattr x="150" y="120"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>COORDINATE</text>
+        </type>
+      </place>
+      
+      <place id="ID59">
+        <posattr x="350" y="150"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>CurrentState</text>
+        <ellipse w="80" h="40"/>
+        <type id="ID60">
+          <posattr x="350" y="120"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>STATEINFE</text>
+        </type>
+      </place>
+      
+      <place id="ID61">
+        <posattr x="350" y="300"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>UpdatedState</text>
+        <ellipse w="80" h="40"/>
+        <type id="ID62">
+          <posattr x="350" y="270"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>STATEINFE</text>
+        </type>
+      </place>
+      
+      <place id="ID63">
+        <posattr x="150" y="300"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>PositionOutput</text>
+        <ellipse w="85" h="40"/>
+        <type id="ID64">
+          <posattr x="150" y="270"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>COORDINATE</text>
+        </type>
+      </place>
+      
+      <!-- Transition: EKF_Filter -->
+      <trans id="ID65" explicit="false">
+        <posattr x="250" y="225"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>EKF_Filter</text>
+        <box w="70" h="40"/>
+        <code id="ID66">
+          <posattr x="310" y="215"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+ekfCycle(state, coord, 1.0)</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: Measurements -> EKF_Filter -->
+      <arc id="ID67" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID65"/>
+        <placeend idref="ID57"/>
+        <annot id="ID68">
+          <posattr x="180" y="185"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>coord</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: CurrentState -> EKF_Filter -->
+      <arc id="ID69" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID65"/>
+        <placeend idref="ID59"/>
+        <annot id="ID70">
+          <posattr x="310" y="185"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>state</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: EKF_Filter -> UpdatedState -->
+      <arc id="ID71" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID65"/>
+        <placeend idref="ID61"/>
+        <annot id="ID72">
+          <posattr x="310" y="260"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>state</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: EKF_Filter -> PositionOutput -->
+      <arc id="ID73" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID65"/>
+        <placeend idref="ID63"/>
+        <annot id="ID74">
+          <posattr x="180" y="260"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>#position state</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- ============================================ -->
+    <!-- PAGE: Evaluation                             -->
+    <!-- ============================================ -->
+    <page id="ID75">
+      <pageattr name="Evaluation"/>
+      
+      <place id="ID76">
+        <posattr x="200" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>PositionData</text>
+        <ellipse w="80" h="40"/>
+        <type id="ID77">
+          <posattr x="200" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>POSITIONLIST</text>
+        </type>
+      </place>
+      
+      <place id="ID78">
+        <posattr x="400" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>PerformanceMetrics</text>
+        <ellipse w="100" h="40"/>
+        <type id="ID79">
+          <posattr x="400" y="70"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>EVALUATION</text>
+        </type>
+      </place>
+      
+      <!-- Transition: CalculateMetrics -->
+      <trans id="ID80" explicit="false">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>CalculateMetrics</text>
+        <box w="80" h="40"/>
+        <code id="ID81">
+          <posattr x="300" y="60"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>action
+evaluatePerformance(posList)</text>
+        </code>
+      </trans>
+      
+      <!-- Arc: PositionData -> CalculateMetrics -->
+      <arc id="ID82" orientation="PtoT" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID80"/>
+        <placeend idref="ID76"/>
+        <annot id="ID83">
+          <posattr x="240" y="90"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>posList</text>
+        </annot>
+      </arc>
+      
+      <!-- Arc: CalculateMetrics -> PerformanceMetrics -->
+      <arc id="ID84" orientation="TtoP" order="1">
+        <posattr x="0" y="0"/>
+        <fillattr colour="White" pattern="" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.200000" currentcyckle="2"/>
+        <transend idref="ID80"/>
+        <placeend idref="ID78"/>
+        <annot id="ID85">
+          <posattr x="350" y="90"/>
+          <fillattr colour="White" pattern="" filled="false"/>
+          <lineattr colour="Black" thick="0" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>eval</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- ============================================ -->
+    <!-- Instance declarations                         -->
+    <!-- ============================================ -->
+    <instances>
+      <instance id="ID86" page="ID3"/>
+      <instance id="ID87" page="ID41"/>
+      <instance id="ID88" page="ID56"/>
+      <instance id="ID89" page="ID75"/>
+    </instances>
+    
+    <!-- ============================================ -->
+    <!-- Options and monitoring                        -->
+    <!-- ============================================ -->
+    <options>
+      <option name="realtimestamp" value="false"/>
+      <option name="fair_be" value="false"/>
+      <option name="global_fairness" value="false"/>
+    </options>
+    
+    <monitorblock name="Monitors"/>
+    
+  </cpnet>
+</workspaceElements>
