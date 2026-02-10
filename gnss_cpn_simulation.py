@@ -19,7 +19,7 @@ The simulation includes:
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List
 from enum import Enum
 import json
 
