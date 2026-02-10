@@ -8,8 +8,7 @@ import numpy as np
 from gnss_train_positioning_simulation import (
     GNSSTrainPositioningSimulator,
     Scenario,
-    InterferenceState,
-    TunnelState
+    InterferenceState
 )
 
 def demonstrate_features():

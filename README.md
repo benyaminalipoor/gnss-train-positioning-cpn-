@@ -59,8 +59,8 @@ This repository contains a complete Python implementation of the GNSS-based trai
 git clone https://github.com/benyaminalipoor/gnss-train-positioning-cpn-.git
 cd gnss-train-positioning-cpn-
 
-# Install required packages
-pip install numpy matplotlib pandas
+# Install required packages from requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Usage / استفاده

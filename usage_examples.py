@@ -4,8 +4,20 @@ Usage Examples for GNSS Train Positioning Simulation
 Shows how to use individual components and customize the simulation
 """
 
-from gnss_train_positioning_simulation import *
+from gnss_train_positioning_simulation import (
+    GNSSTrainPositioningSimulator,
+    GNSSSignalGenerator,
+    InterferenceGenerator,
+    EnvironmentScenario,
+    ExtendedKalmanFilter,
+    Scenario,
+    InterferenceState,
+    TunnelState,
+    Mountain,
+    Coordinate
+)
 import matplotlib.pyplot as plt
+import numpy as np
 
 def example_1_basic_simulation():
     """Example 1: Run a basic simulation"""
@@ -44,24 +56,24 @@ def example_2_signal_generation():
 def example_3_interference():
     """Example 3: Apply different interference types"""
     print("\n=== Example 3: Signal Interference ===\n")
-    
+
     signal_gen = GNSSSignalGenerator()
     interference_gen = InterferenceGenerator()
-    
+
     # Generate clean signals
     signals = signal_gen.generate_test_signals(0)
-    original_psr = [s.psr for s in signals]
-    
+
     # Apply AM interference
     am_signals, am_error = interference_gen.am_interference(1.0, signals)
     print(f"AM Interference Error: {am_error:.2f} m")
-    
+
     # Apply FM interference
     fm_signals, fm_error = interference_gen.fm_interference(1.0, signals)
     print(f"FM Interference Error: {fm_error:.2f} m")
-    
+
     # Apply Pulse interference
-    pulse_signals, pulse_error = interference_gen.pulse_interference(1.0, signals)
+    pulse_signals, pulse_error = interference_gen.pulse_interference(
+        1.0, signals)
     print(f"Pulse Interference Error: {pulse_error:.2f} m")
 
 def example_4_ekf():
