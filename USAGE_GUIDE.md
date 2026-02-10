@@ -120,7 +120,11 @@ Based on research literature:
 | Tunnel + Normal | ~6-7m | ~20m |
 | Open + FM | ~3-4m | ~14m |
 
-**Note**: Actual errors may be higher due to conservative noise modeling and initial convergence.
+**Note**: Actual errors may be higher due to conservative noise modeling and initial convergence. 
+The simulation includes realistic initial position error (~10m) which the EKF gradually corrects.
+Additionally, the noise parameters are set conservatively to demonstrate EKF behavior under 
+challenging conditions. The relative trends (interference and environment impacts) match expected 
+behavior from research literature.
 
 ### Key Trends to Verify
 ✓ FM interference causes highest error

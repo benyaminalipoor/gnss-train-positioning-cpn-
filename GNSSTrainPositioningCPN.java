@@ -347,7 +347,9 @@ public class GNSSTrainPositioningCPN {
             signalGeneration.addInput(satelliteConstellation);
             signalGeneration.addOutput(rawSignals);
             
-            random = new Random(42); // Fixed seed for reproducibility
+            // Fixed seed for reproducibility. To change seed for different variations,
+            // modify the seed value (e.g., new Random(System.currentTimeMillis()))
+            random = new Random(42);
         }
         
         /**
@@ -878,7 +880,8 @@ public class GNSSTrainPositioningCPN {
             g2.drawLine(plotX, plotY + plotHeight, plotX + plotWidth, plotY + plotHeight); // X-axis
             g2.drawLine(plotX, plotY, plotX, plotY + plotHeight); // Y-axis
             
-            double maxError = 8.0;
+            // Calculate max error dynamically for proper scaling
+            double maxError = envErrors.values().stream().mapToDouble(Double::doubleValue).max().orElse(8.0) * 1.2;
             int barWidth = plotWidth / 6;
             Color[] colors = {new Color(100, 200, 100), new Color(255, 200, 100), new Color(255, 100, 100)};
             
@@ -943,7 +946,8 @@ public class GNSSTrainPositioningCPN {
             g2.drawLine(plotX, plotY + plotHeight, plotX + plotWidth, plotY + plotHeight); // X-axis
             g2.drawLine(plotX, plotY, plotX, plotY + plotHeight); // Y-axis
             
-            double maxError = 5.0;
+            // Calculate max error dynamically for proper scaling
+            double maxError = intErrors.values().stream().mapToDouble(Double::doubleValue).max().orElse(5.0) * 1.2;
             int barWidth = plotWidth / 8;
             Color[] colors = {
                 new Color(100, 200, 100),   // Green - Normal

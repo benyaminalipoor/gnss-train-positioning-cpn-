@@ -114,13 +114,15 @@ OPEN_AREA_PULSE           OPEN_AREA       PULSE           8.043        24.086   
 The Extended Kalman Filter consists of two main steps:
 
 **Prediction Step**:
-- State transition: x = x + v·dt
-- Covariance prediction: P = F·P·F^T + Q
+- State transition: x = x + v*dt
+- Covariance prediction: P = F*P*F^T + Q
 
 **Update Step**:
-- Kalman gain: K = P·H^T·(H·P·H^T + R)^(-1)
-- State update: x = x + K·(z - h(x))
-- Covariance update: P = (I - K·H)·P
+- Kalman gain: K = P*H^T*(H*P*H^T + R)^(-1)
+- State update: x = x + K*(z - h(x))
+- Covariance update: P = (I - K*H)*P
+
+Note: * denotes matrix multiplication, ^T denotes transpose, ^(-1) denotes inverse
 
 ### Satellite Configuration
 - 4 satellites in view
