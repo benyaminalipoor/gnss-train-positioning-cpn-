@@ -27,7 +27,7 @@ try
     
     % Check for common syntax elements
     checks = {
-        'clear all', 'Initialization';
+        'clear;', 'Initialization';
         'dt = ', 'Time step definition';
         'Extended Kalman Filter', 'EKF implementation';
         'PETRI NET', 'Petri Net structure';

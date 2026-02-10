@@ -144,25 +144,21 @@ fprintf('Generating interference signals...\n');
 % AM Interference - Amplitude Modulation
 % Based on paper: modulation depth 0.5, carrier at L1 frequency
 % Note: For interference effects, we primarily need the envelope
-AM_signal = zeros(N, 1);
+% Vectorized computation for efficiency
 f_am_mod = 1;  % 1 Hz modulation frequency
-for i = 1:N
-    t = time(i);
-    % Envelope with modulation depth 0.5
-    envelope = 1 + 0.5 * sin(2*pi*f_am_mod*t);
-    % Store envelope (carrier effect is implicit in interference model)
-    AM_signal(i) = envelope;
-end
+AM_signal = 1 + 0.5 * sin(2*pi*f_am_mod*time');
 
 % FM Interference - Frequency Modulation
 % Based on paper: frequency deviation ±75 kHz around L1
+% FM signal with proper phase integration
 FM_signal = zeros(N, 1);
 f_fm_dev = 75e3;  % Frequency deviation (Hz)
 f_fm_mod = 0.5;   % Modulation frequency (Hz)
 for i = 1:N
     t = time(i);
-    freq_inst = f_L1 + f_fm_dev * sin(2*pi*f_fm_mod*t);
-    phase = 2*pi*mod(freq_inst*t, 1);  % Phase wrapping
+    % Proper FM: phase is integral of instantaneous frequency
+    % phase = 2*pi*f_c*t + (f_dev/f_mod) * sin(2*pi*f_mod*t)
+    phase = 2*pi*f_L1*mod(t, 1/1000) + (f_fm_dev/f_fm_mod) * sin(2*pi*f_fm_mod*t);
     FM_signal(i) = sin(phase);
 end
 
@@ -389,10 +385,17 @@ text(0.35, 0.35, {'GNSS Position', 'Solution (EKF)'}, 'HorizontalAlignment', 'ce
 rectangle('Position', [0.55, 0.25, 0.25, 0.2], 'FaceColor', [0.9 0.9 1], 'LineWidth', 2);
 text(0.675, 0.35, {'Evaluation', 'Module'}, 'HorizontalAlignment', 'center', 'FontSize', 12);
 
-% Draw arrows
-annotation('arrow', [0.175, 0.35], [0.6, 0.45]);
-annotation('arrow', [0.5, 0.5], [0.6, 0.45]);
-annotation('arrow', [0.5, 0.675], [0.45, 0.35]);
+% Define positions for diagram elements
+gnss_x = 0.175; gnss_y = 0.7;
+env_x = 0.5; env_y = 0.7;
+interf_x = 0.825; interf_y = 0.7;
+ekf_x = 0.35; ekf_y = 0.35;
+eval_x = 0.675; eval_y = 0.35;
+
+% Draw arrows with named positions
+annotation('arrow', [gnss_x, ekf_x], [0.6, 0.45]);
+annotation('arrow', [env_x, env_x], [0.6, 0.45]);
+annotation('arrow', [env_x, eval_x], [0.45, ekf_y]);
 
 axis off;
 title('Figure 1: Modeling Framework of GNSS Train Positioning System', 'FontSize', 14);
