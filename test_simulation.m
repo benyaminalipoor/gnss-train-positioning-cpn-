@@ -2,7 +2,7 @@
 % This script performs a quick validation of the main simulation
 % Run this to ensure the simulation works before running the full version
 
-clear all; close all; clc;
+clear; close all; clc;
 
 fprintf('=========================================\n');
 fprintf('GNSS Train Positioning - Quick Test\n');

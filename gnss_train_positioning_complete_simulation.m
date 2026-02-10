@@ -10,7 +10,7 @@
 % 4. Extended Kalman Filter (EKF) for position estimation
 % 5. Generation of all figures and tables from the paper
 
-clear all; close all; clc;
+clear; close all; clc;
 
 %% ========================================================================
 %  SECTION 1: SIMULATION PARAMETERS
@@ -143,13 +143,15 @@ fprintf('Generating interference signals...\n');
 
 % AM Interference - Amplitude Modulation
 % Based on paper: modulation depth 0.5, carrier at L1 frequency
+% Note: For interference effects, we primarily need the envelope
 AM_signal = zeros(N, 1);
 f_am_mod = 1;  % 1 Hz modulation frequency
 for i = 1:N
     t = time(i);
+    % Envelope with modulation depth 0.5
     envelope = 1 + 0.5 * sin(2*pi*f_am_mod*t);
-    carrier = sin(2*pi*f_L1*mod(t, 1/f_L1));  % Use mod to prevent overflow
-    AM_signal(i) = envelope * carrier;
+    % Store envelope (carrier effect is implicit in interference model)
+    AM_signal(i) = envelope;
 end
 
 % FM Interference - Frequency Modulation
