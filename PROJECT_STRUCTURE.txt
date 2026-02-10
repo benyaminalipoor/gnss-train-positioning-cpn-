@@ -1,0 +1,257 @@
+================================================================================
+GNSS TRAIN POSITIONING SIMULATION - PROJECT STRUCTURE
+شبیه‌سازی موقعیت‌یابی قطار با GNSS - ساختار پروژه
+================================================================================
+
+📁 Repository Root
+│
+├── 📄 Petrii.PDF (Original Research Paper)
+│   └── Paper: "Modeling and performance analysis of GNSS-based train 
+│       positioning system with colored petri nets"
+│       High-speed Railway 3 (2025) 175–184
+│
+├── 🚀 MAIN SIMULATION FILE
+│   └── gnss_train_positioning_complete_simulation.m (754 lines)
+│       ├── Section 1:  Simulation Parameters
+│       ├── Section 2:  Reference Trajectory Generation
+│       ├── Section 3:  Satellite Constellation Generation
+│       ├── Section 4:  Automaton for Environment Scenarios
+│       ├── Section 5:  Interference Signal Models (AM, FM, Pulse)
+│       ├── Section 6:  Petri Net Simulation Setup
+│       ├── Section 7:  Simulation of All Scenarios
+│       ├── Section 8:  Generate Figures from Paper
+│       ├── Section 9:  Generate Tables from Paper
+│       ├── Section 10: Detailed CPN Petri Net Diagram
+│       ├── Section 11: Interference Signals Visualization
+│       └── Section 12: Summary and Results
+│
+├── 🧪 TEST & VALIDATION
+│   └── test_simulation.m (159 lines)
+│       └── Quick validation before running full simulation
+│
+├── 📖 DOCUMENTATION (English)
+│   ├── README.md (Main overview - Bilingual)
+│   ├── README_SIMULATION.md (Complete English documentation)
+│   └── QUICK_START.md (Quick reference guide)
+│
+├── 📖 DOCUMENTATION (Persian/Farsi)
+│   └── README_FA.md (مستندات کامل به فارسی)
+│
+└── 📊 OUTPUT FILES (Generated after running simulation)
+    ├── Figure_01_Modeling_Framework.png
+    ├── Figure_10_Tunnel_Errors.png (Main Result ⭐)
+    ├── Figure_Interference_Comparison.png
+    ├── Figure_Environment_Comparison.png
+    ├── Figure_3D_Trajectory.png
+    ├── Figure_Petri_Net_States.png
+    ├── Figure_CPN_Petri_Net_Structure.png
+    ├── Figure_Interference_Signals.png
+    └── gnss_simulation_results.mat
+
+================================================================================
+SIMULATION WORKFLOW
+جریان کار شبیه‌سازی
+================================================================================
+
+1. INITIALIZATION
+   ├── Set simulation parameters (T_sim=600s, dt=1s)
+   ├── Define GNSS parameters (L1 frequency, satellites)
+   └── Initialize EKF state and covariance
+
+2. DATA GENERATION
+   ├── Generate reference trajectory (ground truth)
+   ├── Generate satellite constellation (4 satellites)
+   └── Define environment scenario automaton
+
+3. INTERFERENCE MODELING
+   ├── AM Interference (Amplitude Modulation)
+   ├── FM Interference (Frequency Modulation)
+   └── Pulse Interference (Periodic bursts)
+
+4. PETRI NET SIMULATION (Main Loop)
+   ├── For each time step (600 steps)
+   │   ├── PLACE: GNSS_Signal (satellite data)
+   │   ├── TRANSITION: Choose Scenario (automaton)
+   │   ├── PLACE: Scenario (current environment)
+   │   ├── TRANSITION: Apply Interference
+   │   ├── PLACE: GNSS_Observation (measurements)
+   │   ├── TRANSITION: EKF Update (Kalman filter)
+   │   ├── PLACE: Position (estimated position)
+   │   └── TRANSITION: Calculate Error
+   └── Store results for each scenario
+
+5. ANALYSIS & OUTPUT
+   ├── Generate 8 figures (PNG format)
+   ├── Calculate statistics (Tables 4 & 5)
+   └── Save results (MAT file)
+
+================================================================================
+ENVIRONMENT SCENARIOS (Automaton States)
+سناریوهای محیطی (حالت‌های اتوماتون)
+================================================================================
+
+Timeline:    0s────200s────300s────400s────450s────600s
+            [  Open  ][Mountain][Tunnel][JustOut][Stable]
+State:      [   1   ][   2   ][  3   ][  4   ][  5   ]
+
+1. Open Area (0-200s)
+   - All satellites visible
+   - Normal operation
+   - Best positioning performance
+
+2. Mountain (200-300s)
+   - Some satellites blocked by terrain
+   - Reduced satellite visibility
+   - Moderate positioning errors
+
+3. Inside Tunnel (300-400s)
+   - All GNSS signals blocked
+   - Zero satellites visible
+   - No positioning possible
+
+4. Just Out of Tunnel (400-450s)
+   - Satellites reacquired
+   - High initial errors
+   - Exponential error decrease
+
+5. Stabilized (450-600s)
+   - Normal operation restored
+   - All satellites visible
+   - Performance recovered
+
+================================================================================
+INTERFERENCE SCENARIOS
+سناریوهای تداخل
+================================================================================
+
+1. Normal (No Interference)
+   └── Baseline performance
+
+2. AM Interference
+   └── Amplitude modulation at 1 Hz, L1 carrier
+
+3. FM Interference  
+   └── Frequency modulation ±75 kHz deviation
+
+4. Pulse Interference
+   └── Periodic bursts (2s pulse, 10s interval)
+
+================================================================================
+KEY RESULTS (Expected Performance)
+نتایج کلیدی (عملکرد مورد انتظار)
+================================================================================
+
+TABLE 4: Signal Interference Performance
+┌─────────┬──────────────┬─────────────┐
+│Scenario │ Mean Error   │ Std Dev     │
+├─────────┼──────────────┼─────────────┤
+│Normal   │ ~1.03 m      │ ~0.06 m     │
+│AM       │ ~4.95 m      │ ~4.08 m     │
+│FM       │ ~6.22 m      │ ~5.26 m     │ ← Worst
+│Pulse    │ ~4.79 m      │ ~3.62 m     │
+└─────────┴──────────────┴─────────────┘
+
+TABLE 5: Environment Scenario Performance
+┌──────────────────┬──────────────┬─────────────┐
+│Scenario          │ Mean Error   │ Std Dev     │
+├──────────────────┼──────────────┼─────────────┤
+│Open Area         │ ~1.03 m      │ ~0.06 m     │ ← Best
+│Mountain Occlusion│ ~1.30 m      │ ~0.45 m     │
+│Tunnel            │ ~5.67 m      │ ~6.69 m     │ ← Worst
+└──────────────────┴──────────────┴─────────────┘
+
+================================================================================
+TECHNICAL IMPLEMENTATION
+پیاده‌سازی فنی
+================================================================================
+
+PETRI NET COMPONENTS:
+• Places (6): GNSS_Signal, Scenario, Bool_Control, GNSS_Observation, 
+              Position, Delta_Position
+• Transitions (4): Choose_Scenario, Apply_Interference, EKF_Update, 
+                   Calculate_Error
+• Tokens: Data structures representing system state
+
+AUTOMATON:
+• States (5): OpenArea, Mountain, InsideTunnel, JustOut, Stabilized
+• Transitions: Time-based (deterministic)
+• Output: Environment state for each time step
+
+KALMAN FILTER (EKF):
+• State vector (6D): [x, y, z, vx, vy, vz]
+• Measurement: Pseudoranges from satellites
+• Process model: Constant velocity motion
+• Update: Standard EKF prediction + update steps
+
+SATELLITES:
+• Number: 4 satellites (GPS-like)
+• Orbit: Simplified circular orbits
+• Measurements: Pseudorange + noise + interference
+
+================================================================================
+USAGE INSTRUCTIONS
+دستورالعمل استفاده
+================================================================================
+
+QUICK START:
+1. Open MATLAB
+2. cd to repository directory
+3. Run: gnss_train_positioning_complete_simulation
+4. Wait ~10-30 seconds
+5. Check generated PNG files and console output
+
+TESTING:
+1. Run: test_simulation
+2. Verify all tests pass
+3. Then run full simulation
+
+CUSTOMIZATION:
+• Edit Section 1 of main script
+• Modify: T_sim, v_train, sigma_pseudorange, etc.
+• Re-run simulation
+
+ANALYSIS:
+• Load: load('gnss_simulation_results.mat')
+• Access: results.Normal.pos_error, results.Tunnel.pos_error, etc.
+• Plot: plot(time, results.Normal.pos_error)
+
+================================================================================
+REQUIREMENTS
+نیازمندی‌ها
+================================================================================
+
+Software:
+• MATLAB R2016b or later
+• OR GNU Octave 5.0+
+• No toolboxes required
+
+Hardware:
+• Any modern computer
+• ~100 MB RAM
+• ~10 MB disk space
+
+Time:
+• First run: ~10-30 seconds
+• Subsequent runs: similar
+
+================================================================================
+REFERENCES & ACKNOWLEDGMENTS
+مراجع و قدردانی
+================================================================================
+
+Paper:
+Chen, S., Wu, D., Liu, J., & Wang, S. (2025). 
+Modeling and performance analysis of GNSS-based train positioning 
+system with colored petri nets. High-speed Railway, 3, 175-184.
+
+Institution:
+Beijing Jiaotong University, China
+
+Funding:
+• National Key R&D Program of China (2023YFB3907300)
+• Fundamental Research Funds for Central Universities (2024JBMC002)
+• National Natural Science Foundation of China (T2222015, U2268206)
+
+================================================================================
+END OF PROJECT STRUCTURE
+================================================================================
