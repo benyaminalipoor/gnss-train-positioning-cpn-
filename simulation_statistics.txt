@@ -1,0 +1,40 @@
+=== GNSS Train Positioning CPN - Simulation Statistics ===
+
+Overall Results:
+--------------------------------------------------------------------------------
+Scenario                  Environment     Interference    Mean (m)     Max (m)      Std (m)     
+--------------------------------------------------------------------------------
+OPEN_AREA_NORMAL          OPEN_AREA       NORMAL          4.229        14.757       1.391       
+MOUNTAIN_NORMAL           MOUNTAIN        NORMAL          10.636       25.613       2.912       
+TUNNEL_NORMAL             TUNNEL          NORMAL          20.358       29.545       3.542       
+OPEN_AREA_AM              OPEN_AREA       AM              10.423       26.358       2.767       
+OPEN_AREA_FM              OPEN_AREA       FM              14.010       27.795       3.045       
+OPEN_AREA_PULSE           OPEN_AREA       PULSE           8.043        24.086       2.301       
+
+--------------------------------------------------------------------------------
+
+Environment Comparison (Normal Interference):
+--------------------------------------------------------------------------------
+OPEN_AREA: Mean Error = 4.229 m
+MOUNTAIN: Mean Error = 10.636 m
+TUNNEL: Mean Error = 20.358 m
+
+--------------------------------------------------------------------------------
+
+Interference Comparison (Open Area):
+--------------------------------------------------------------------------------
+NORMAL: Mean Error = 4.229 m
+AM: Mean Error = 10.423 m
+FM: Mean Error = 14.010 m
+PULSE: Mean Error = 8.043 m
+
+--------------------------------------------------------------------------------
+
+Validation Against Expected Results:
+--------------------------------------------------------------------------------
+Expected Trends:
+  - Interference: FM > AM > Pulse > Normal
+  - Environment: Tunnel > Mountain > Open Area
+  - Best case: Open Area + Normal (~1m)
+  - Worst case: Tunnel + Normal (~6-7m)
+  - FM interference: ~3-4m mean error
