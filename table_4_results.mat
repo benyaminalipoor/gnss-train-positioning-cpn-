@@ -1,0 +1,49 @@
+# Created by Octave 8.4.0, Tue Feb 10 13:14:47 2026 UTC <runner@runnervmwffz4>
+# name: table_data
+# type: matrix
+# rows: 4
+# columns: 2
+ 1.0548912181244432 0.45320190484740225
+ 3.7930888427018763 1.6972627290112592
+ 3.9432315270443992 1.7793751106894153
+ 3.2772950671643204 1.3365708207912277
+
+
+# name: scenarios
+# type: cell
+# rows: 1
+# columns: 4
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 6
+Normal
+
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 2
+AM
+
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 2
+FM
+
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 5
+Pulse
+
+
+
+
+

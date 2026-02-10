@@ -1,0 +1,484 @@
+
+
+--- PAGE 1 ---
+
+High-speed Railway 3 (2025) 175–184
+Contents lists available at ScienceDirect
+High-speed Railway
+journal homepage: www.keaipublishing.com/en/journals/high-speed-railway
+Research article
+Modeling and performance analysis of GNSS-based train positioning system
+]]
+]]
+with colored petri nets ]]]]]]
+Shuting Chena,b, Daohua Wua,b,⁎ , Jiang Liua,c,d, Siqi Wanga,d
+a School of Automation and Intelligence, Beijing Jiaotong University, Beijing 100044, China
+b National Research Center of Railway Safety Assessment, Collaborative Innovation Center of Railway Traffic Safety, Beijing Jiaotong University, Beijing 100044, China
+c State Key Laboratory of Advanced Rail Autonomous Operation, Beijing Jiaotong University, Beijing 100044, China
+d Frontiers Science Center for Smart High-speed Railway System, Beijing Jiaotong University, Beijing 100044, China
+A R T I C L E I N F O A B S T R A C T
+Keywords: Global Navigation Satellite System (GNSS)-based continuous and accurate train positioning is one of the key
+GNSS-based train positioning technologies for advanced train operations such as train virtual coupling. However, GNSS-based train posi-
+Positioning performance tioning faces significant challenges in real-world scenarios due to environmental complexities and signal in-
+Environment scenario terferences. Considering this issue, this paper presents an approach for modeling and performance analysis of
+GNSS signal interference
+GNSS-based train positioning systems using Colored Petri Nets (CPNs). By systematically modeling the GNSS
+Colored petri Nets
+signal reception and processing process, the performance of the positioning system under various environment
+scenarios is evaluated. The system model integrates three types of interference signals (i.e., Amplitude
+Modulation (AM) signals, Frequency Modulation (FM) signals, and pulse signals) while incorporating environ-
+mental factors such as terrain obstructions and tunnel shielding. Additionally, the Extended Kalman Filter (EKF)
+algorithm is employed to process GNSS observation data, providing accurate train position estimations. The
+simulation results demonstrate that signal interferences and complex environmental conditions significantly
+affect the GNSS-based positioning accuracy. This study offers a comprehensive framework for evaluating the
+performance of GNSS-based train positioning systems in different scenarios, highlighting critical factors that
+influence positioning accuracy and stability.
+1. Introduction accuracy [5,6]. However, these works lack a comprehensive perfor-
+mance analysis of GNSS-based positioning in real-world operational
+With the increasing demand for operation safety and efficiency in environments such as tunnels and mountainous terrains, where signal
+rail transportation, train virtual coupling has been proposed and be- interferences and obstructions occur frequently.
+come a hot research topic in recent years. For virtual coupling, con- One of the critical challenges in applying GNSS-based train posi-
+tinuous and accurate train positioning is a cornerstone. Due to the tioning is analyzing its performances under various operational condi-
+global coverage and high availability, Global Navigation Satellite tions including that GNSS signals are interfered with by interference
+Systems (GNSSs) have been widely employed for train positioning [1]. signals such as Amplitude Modulation (AM) signals, Frequency
+However, GNSS-based positioning faces significant challenges in com- Modulation (FM) signals, and pulse signals, or obstructed by mountains
+plex operational environments such as mountainous regions and tun- and tunnels. Traditional approaches often fail to intuitively represent
+nels, where signal obstructions and interferences lead to accuracy de- the dynamic interactions of GNSS signals and the environmental effects
+gradation. on positioning accuracy. To this end, this paper proposes a Colored
+Extensive researches have focused on the application of GNSS in Petri Net (CPN)-based approach to analyze the performance of GNSS-
+train positioning, specifically under idealized conditions with unin- based train positioning systems. CPNs provide a powerful framework to
+terrupted and unobstructed signal reception [2–4]. Existing methods, describe the dynamic behaviors and concurrent processes of GNSS
+such as Extended Kalman Filters (EKFs) and data fusion with inertial signal reception, signal interferences, and environmental impacts of the
+sensors, have been demonstrated notable in improving positioning positioning systems. The objective of this study is to evaluate the
+⁎
+Corresponding author.
+E-mail address: wudaohua@bjtu.edu.cn (D. Wu).
+https://doi.org/10.1016/j.hspr.2025.05.001
+Received 14 January 2025; Received in revised form 30 April 2025; Accepted 6 May 2025
+Available online 14 May 2025
+2949-8678/© 2025 The Authors. Published by Elsevier B.V. on behalf of KeAi Communications Co. Ltd. This is an open access article under the CC BY-NC-ND license
+(http://creativecommons.org/licenses/by-nc-nd/4.0/).
+
+--- PAGE 2 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+performance of the GNSS-based positioning systems under varying verification. In this work, we adopt CPNs [16] as the formal modeling
+operational scenarios including open areas, mountainous terrains, and framework to study the impact of signal interferences and environ-
+tunnels while incorporating signal interferences and EKF data fusion for mental factors on GNSS-based train positioning. Petri nets are formal
+higher accuracy. modeling languages that are well-known for systems characterized as
+The main contributions of this paper are as follows. concurrent, synchronous, distributed, etc. Some application examples
+adopting petri nets as the means of description for railway signaling
+1) A novel CPN-based modeling framework for GNSS-based train po- systems can be found in Refs. [17–22].
+sitioning systems is developed.
+2) Dynamic influences of signal interferences (i.e., by AM signals, FM
+signals, pulse signals) and environmental obstructions (i.e., by 3. System modeling with CPNs
+mountains and tunnels) are incorporated into the model.
+3) The performance of the GNSS-based train positioning system is Fig. 1 illustrates the modeling framework of a GNSS-based train
+quantitatively evaluated under various scenarios with the CPN positioning system comprising the following main parts: GNSS Re-
+model of the system. ceiver, Environment Scenarios, Interference Signals, GNSS Position
+Solution, and Evaluation Module. The module GNSS Receiver selects
+2. Related works specific environment scenarios and receives GNSS signals. The
+module Environment Scenarios is composed of three submodules:
+Over the past decades, GNSS-based systems have been extensively ap- Open Area Scenario, Mountain Occlusion Scenario, and Tunnel and
+plied to train positioning due to their global coverage and high accuracy Exit Tunnel Scenario. These submodules simulate various real-world
+under favorable conditions [1,7]. Despite these advantages, challenges such conditions while generating GNSS signal interferences, i.e., GNSS
+as signal interferences and terrain-induced occlusions continue to pose signals are interfered with by AM, FM, and pulse signals. In the
+questions on high positioning accuracy and stability. Numerous studies have module GNSS Positioning Solution, the EKF algorithm is employed to
+explored techniques to mitigate the impacts of signal interferences on GNSS- process interfered GNSS signals for estimating the train’s position.
+based positioning accuracy [8–12]. For example, Ref. [9] investigates the The module Evaluation compares the calculated position with the
+impact of continuous wave interference on GNSS receiver tracking perfor- reference position and outputs the positioning error. Fig. 2 clearly
+mance, examining the extent of its influence by varying data bit durations illustrates the hierarchical relationships between modules of the CPN
+or integration times. To address interference-related challenges, an inter- model, providing a structured view of their layered organization. The
+ference energy detection method and a comprehensive orientation tech- declarations of the model are categorized and summarized in two
+nology tailored for GNSS are introduced in Ref. [11]. Besides, a number of tables for clarity. Table 1 provides the colset declarations and their
+researches have examined the impact of environmental factors along respective descriptions, while Table 2 provides the variable declara-
+railway lines on GNSS signal integrity. For instance, Ref. [13] explores tions and their respective descriptions.
+methods of scenario-based weighted measurement noise calculation and
+fault detection combined with state recognition based on integrity evalua-
+tion in autonomous train positioning systems. Some studies have achieved 3.1. Top-level of the positioning system model
+high positioning accuracy in partially obstructed or challenging environ-
+ments by fusing multi-sensor data [6,14,15]. The top-level of the CPN model is shown in Fig. 3. Each substitution
+In contrast to studies that mainly investigate GNSS signal inter- transition corresponds to a specific component of the system archi-
+ferences in isolation, this paper integrates environmental factors and tecture. The commands or feedbacks are represented by the tokens on
+signal interferences into the formal model of the positioning system. By the places. The GNSS Receiver processes GNSS signals transmitted by
+utilizing model simulation, the proposed approach enables a quantita- the satellite constellation. Using the EKF algorithm, the system per-
+tive evaluation of the system’s performance. This method provides a forms a position solution to determine the train’s position at the current
+systematic analysis and verification of the interactions among signal time. The calculated position coordinates are then evaluated against
+interferences, environmental conditions, and train positioning. reference coordinates for performance analysis. This evaluation assesses
+Due to the rigorous mathematical foundation, formal methods have the positioning accuracy of the GNSS-based train positioning system
+gained recognition as effective tools for system modeling and under various environment scenarios and signal interferences.
+Fig. 1. Modeling framework of train positioning system considering signal interferences and environmental factors.
+176
+
+--- PAGE 3 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Fig. 2. Hierarchical architecture of the CPN model.
+Table 1
+Definitions and descriptions of colsets.
+Colset definition Description
+colset BOOL = bool; Abooleanvalue(true/false).
+colset INT = int; Anintegervalue.
+colset INTTIME = int timed; Atimedintegervalue.
+colset REAL = real; Arealnumber.
+colset SIGNAL = record id: INT * psr: REAL * psr_rate: REAL
+* x: REAL * y: REAL * z: REAL * vx: REAL * Represents a signal record containing data from a single satellite.
+vy: REAL * vz: REAL * clk: REAL * Thisincludespseudorange,pseudorangerate,position,velocity,and
+azimuth: REAL * elevation: REAL * satellitemetadatasuchasclockbiasandelevation.
+Rate_clock: REAL;
+Representsthecompletesetofsatellitedataavailabletothereceiver
+colset SIGNALlist = list SIGNAL; ataspecificmomentintime.ItcontainsalistofSIGNAL records,one
+foreachsatelliteinview.
+Represents a comprehensive dataset for multiple consecutive time
+points, including all satellite data (SIGNALlist) available to the re-
+colset SIGNALLIST = product INT * INT * SIGNALlist;
+ceiver,alongwithanassociatedtimestampandsequencenumberfor
+eachepoch.
+colset SCENARIO = with OpenArea | Mountain | Tunnel; Differentenvironmentscenarios.
+colset STATEINFE = with AM | FM | Pulse | Normal; InterferencestatessuchasAM,FM,Pulse,andNormal.
+colset Coordinate = product REAL * REAL * REAL; A3Dcoordinate.
+colset COORDINATE = product INT * Coordinate; Acoordinatewithanassociatedtimestamp.
+colset DELTAPOSITION = product INT * Coordinate * REAL; Positionaldifferencewithanassociatedtimestampanderrorvalue.
+colset TIMESTAMP = REAL; Atimestamp.
+colset HEIGHT = REAL; Height.
+colset DISTANCE = REAL; Distance.
+colset MOUNTAIN = product HEIGHT * DISTANCE; Mountainparameterswithheightanddistance.
+colset TUNNELSTATE = with InTunnel | JustOut | OutTunnel; Stateoftraininrelationtoatunnel.
+colset TUNNEL = REAL; Tunnel-relateddata.
+3.2. Module GNSS Receiver environment, processing signal interferences, and producing
+observation results.
+The module GNSS Receiver, illustrated in Fig. 4, is designed to To simulate the behavior of GNSS signals under different environ-
+simulate the complete process of GNSS signal reception and proces- ment scenarios , the model incorporates three submodules tailored for
+sing of a train-mounted receiver. It performs the following key representative conditions: open areas, mountainous terrain with ob-
+functions: receiving satellite signals, identifying the train’s operating structions, and tunnels. These submodules enable realistic error
+177
+
+--- PAGE 4 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Table 2
+Variable declarations and descriptions.
+Variable declaration Description
+VisibleBDS, SigInfo: SIGNALLIST; Listofvisiblesatellites.
+Envi: SCENARIO; Environmentscenario.
+InterferenceData, InterferenceData1: SIGNALLIST; GNSSsignaldataunderinterferences.
+Mutex: MUTEX; Amutualexclusionvariable.
+StateInterference: STATEINFE; Stateofsignalinterference(e.g.,AM,FM,Pulse,orNormal).
+deltaPosition: DELTAPOSITION; Errorbetweenthecalculatedpositionandthereferenceposition.
+Boolean variables indicating the presence of AM, FM, or pulse
+bAM, bFM, bPulse: BOOL;
+interference.
+AMError, FMError, PulseError: REAL; ErrorcausedbyAM,FM,andPulseinterferencerespectively.
+Stateoftrain’spositioninthetunnelscenario(e.g.,InTunnel,JustOut,
+TrainPosition, TrainPosition1: TUNNELSTATE;
+OutTunnel).
+DelayError, TimeCounter, TimeCounter1: TIMESTAMP; Timecounters.
+position, TrackCoordinate, BDS_ENU: COORDINATE; Positionoftrain.
+For the transition AM Interference, amplitude-modulated inter-
+ference signals are generated by multiplying a low-frequency sinusoidal
+envelope (1 Hz) with a high-frequency carrier wave centered at
+1575.42 MHz, corresponding to the GNSS L1 band. This configuration
+produces a time-varying envelope with a modulation depth of 0.5, ef-
+fectively simulating realistic amplitude fluctuations observed in Radio
+Frequency (RF) interference sources. A similar signal interference set-
+ting is illustrated in Ref. [23]. Dynamic amplitude variations can sig-
+nificantly degrade GNSS signal reception, particularly in high-noise or
+contested environments.
+The transition FM Interference simulates frequency-modulated
+signal interference by generating two sinusoidal components with
+Fig. 3. Top-level of the CPN model.
+symmetrical frequency deviations around a carrier frequency centered
+at 1575.42 MHz, corresponding to the GNSS L1 band. These deviations
+are sampled from a Gaussian distribution with a standard deviation of
+75 kHz, emulating the spectral characteristics of typical FM broadcast
+signals [24]. This approach captures the dynamic spectral spreading
+commonly observed in real-world RF interference.
+The transition Pulse Interference generates periodic pulse signals to si-
+mulate sudden and intense bursts of RF energy. It samples two random
+parameters: the pulse width Tp which represents the duration of each pulse,
+and the pulse interval Ti which defines the spacing between successive
+pulses. A uniformly distributed amplitude between 1 and 5 simulates the
+varying severity of the interference. At each time step, the model checks
+whether the current time modulo the total pulse period Tp + Ti falls within
+the pulse’s active duration. If so, an interference signal of the specified
+amplitude is emitted; otherwise, it remains zero. This periodic pulsed
+structure reflects typical burst-like interference patterns observed in GNSS
+Fig. 4. Module GNSS Receiver. environments [25], characterized by sharp, short-lived increases in signal
+strength followed by rapid attenuation.
+modeling under different operational conditions. The transition Choose The input data enter the module through the input places Open Area
+Scenario fires to select the corresponding substitute transition based on and GNSS Signal, representing the GNSS satellites and the initial en-
+the token moving from Scenario to Choose Scenario. The tokens on the vironmental conditions. The place Bool Control and transition Mutex
+place GNSS Signal, representing the visible GNSS signals received, serve manage the logic for introducing signal interference, with the code in
+as the input data source. After processing, the output tokens move to Mutex ensuring that the generation processes for different interference
+the place of GNSS Observation. types do not conflict. Each interference signal is integrated into the
+GNSS data by firing the transition Interference. The GNSS data affected
+3.2.1. Submodule Open Area by signal interferences proceed to the observation output stage con-
+Fig. 5 illustrates the CPN model designed to simulate the impacts of trolled by the place GNSS Number. The final results are outputted from
+GNSS signal interferences on the observation signals. This model in- the output place GNSS Observation.
+troduces three typical types of interference signals, i.e., AM, FM, and
+pulse signals. Boolean variables are used to control the activation of 3.2.2. Submodule Mountain
+each interference type. This design ensures that the generation process Fig. 6 illustrates the shielding effect of mountainous terrain on GNSS
+of each interference signal is both independent and easily manageable. signals. In addition to incorporating AM, FM, and pulse signal inter-
+Additionally, it accurately reflects the characteristics of realistic signal ferences, the module introduces environmental factors of mountain
+interference environments. height, terrain data, and obstruction distance. These elements are used
+178
+
+--- PAGE 5 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Fig. 5. Submodule Open Area.
+to filter out signals from satellites that are obstructed by the terrain. The Inside the tunnel, a train is shielded by the structure blocking
+places Mountain Height and Distance store mountain elevations and GNSS signal reception. During this phase, the place GNSS Signal
+spatial relationships between the terrain and GNSS signal paths. These remains empty indicating the complete obstruction of satellite sig-
+serve as the foundational data for modeling and analyzing how terrain nals. When the train just exits the tunnel, the GNSS signals become
+features obstruct satellite signals. The transition Mountain Data Fusion visible again. However, due to the complex environmental condi-
+and its code are responsible for integrating and transmitting these data. tions near the tunnel exit, such as multipath effects, signal reflec-
+The place GNSS Signal stores the initial GNSS satellite data. The tions, and delays, the GNSS observation data contain significant er-
+transition Mountain Scenario integrates mountain height and obstruc- rors. This process is modeled by the code of the transition Tunnel
+tion distance information with current visible satellite data to filter out Scenario, which integrates the tunnel state from the place Tunnel
+obstructed signals. This process assesses satellite visibility by com- with visible satellite information. Over time, as the GNSS signal re-
+paring each satellite’s elevation angle with the obstruction angle de- ception stabilizes, the positioning errors gradually decrease. This
+rived from the mountain height and the receiver’s distance to the dynamic adjustment is governed by the place Time Counter. The
+mountain. If a satellite’s elevation angle is lower than the obstruction place GNSS Observation outputs the GNSS data affected by the tunnel
+angle, it is deemed as obstructed and excluded from the positioning scenario, including both the high-error initial data and the stabilized
+calculations. After the firing of the transition Mountain Scenario, the high-accuracy data. This module effectively captures the three-phase
+GNSS data are stored in the place Data with Mountain Error. impact of tunnel scenarios on GNSS signal reception: complete signal
+Additionally, visible satellite data are combined with interference sig- loss inside the tunnel, significant errors immediately after exiting,
+nals and output to the place GNSS Observation. By incorporating a and eventual signal stabilization outside the tunnel.
+mountainous terrain scenario, this module effectively simulates the
+dynamic impact of terrain obstructions on GNSS signal visibility in 3.3. Module GNSS Position Solution
+complex environments.
+Fig. 8 illustrates the process of transforming GNSS observations into
+3.2.3. Submodule Tunnel train positions. GNSS observations, received from the GNSS Receiver
+Fig. 7 illustrates the process of GNSS signal reception and error variation module, are sequentially processed by the transition EKF. The com-
+for a train in a tunnel scenario. It focuses on the dynamic impact of the pletion of the EKF process is indicated by the output flag bEKF=true,
+tunnel environment on the satellite signal visibility and positioning accu- which signals readiness for subsequent evaluation. Due to the limited
+racy. In this module, the places InTunnel, Just Out, and Out Tunnel re- matrix computation capability of CPN, the tokens on the place Position
+present the train’s current state, including three phases: inside the tunnel, are generated with MATLAB. The pseudocode of the GNSS data pro-
+just outside the tunnel, and completely outside the tunnel. cessing workflow and position solution is presented in Algorithm 1.
+179
+
+--- PAGE 6 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Fig. 6. Submodule Mountain.
+Algorithm 1. GNSS data processing and position solution. 3.4. Module Evaluation
+Module Evaluation in Fig. 9 is designed to dynamically assess the
+functionality of the train positioning system. The primary functions of
+the module include selecting GNSS environment scenarios, initiating
+GNSS data simulation, and calculating positioning errors. The module
+calculates the error distance between the position computed from si-
+mulated GNSS observations and the reference position by using the
+Euclidean distance formula in three-dimension:
+d= (x x)2+(y y)2+(z z)2
+2 1 2 1 2 1 (1)
+where (x1, y1, z1) represents the reference position coordinates, (x2, y2,
+z2) represents the calculated position coordinates, and d is the com-
+puted error distance.
+The resulting error values are then output via the place Delta
+Position. The environment scenario is dynamically selected through the
+firing of the transition Select Environment Scenario. The coordinate
+values stored on the place Reference Position originate from an actual
+train trajectory, representing a segment of real-world train movement.
+This dataset serves as a benchmark and is precisely aligned with the
+GNSS signal data. The calculated positional information is input into
+the module via the place Position, and it is compared to the reference
+position data. The transition Calculate Position Error is deployed to
+compute the error using Eq. (1).
+180
+
+--- PAGE 7 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Fig. 7. Submodule Tunnel.
+occurrence sequences. These findings together demonstrate the model’s
+soundness, boundedness, and finite execution. The existence of dead
+markings suggests that certain process branches reach terminal states
+where no further transitions are possible. This behavior is consistent
+with the expected functioning of the train positioning system, where a
+positioning cycle may conclude or the process may terminate early due
+to data filtering or error detection.
+To simulate train positioning, loops are added to the model. Each
+Fig. 8. Module GNSS Position Solution.
+unit of time in the model corresponds to one second in the real world. A
+simulation running for 600-time units represents ten minutes of station
+4. Simulation and analysis results operation. To facilitate data analysis, a breakpoint monitor is set to halt
+the simulation when the model time exceeds 600-time units.
+To ensure the correctness of the CPN model, formal verification is The dataset used for the simulation is based on a segment of the
+essential. Table 3 presents part of the standard state space report for the actual Jing–Shen high-speed railway. Track coordinates are derived
+developed model. The state space is complete, comprising 5365 mark- from field measurements, while satellite ephemeris data are obtained
+ings and 6410 arcs. The Strongly Connected Component (SCC) graph from standard RINEX broadcast ephemeris files. At each observation
+contains the same number of nodes and arcs, indicating the absence of epoch along the track, visible satellites and their corresponding signal
+cycles in the state space. The verification was performed using five parameters are calculated. Specifically, satellite positions are de-
+representative input datasets, which cover all potential operational termined using broadcast ephemeris data through standard GNSS or-
+paths of the system. This ensures that the generated state space fully bital propagation models. True pseudoranges are computed based on
+captures the range of behaviors that the model can exhibit under dif- the geometric distance between the satellite and the receiver, assuming
+ferent input conditions. The home properties show that the initial ideal signal propagation without any observation errors. Azimuth and
+marking is not a home marking. According to the liveness properties, elevation angles are computed by transforming the satellite coordinates
+the model includes 648 dead markings, but no dead or live transition into the local horizon coordinate system relative to the receiver’s po-
+instances. The fairness properties confirm that there are no infinite sition. These computations adhere to established GNSS observation
+181
+
+--- PAGE 8 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Fig. 9. Module Evalution.
+Table 3 angles, and azimuth angles. An example of the input data is shown
+Part of information of the standard state space report. below.
+Statistics
+State space
+Nodes: 5365
+Arcs: 6410
+Secs: 1
+Status: Full
+SCC Graph
+Nodes: 5365
+Arcs: 6410
+Secs: 0
+Home properties
+Home markings
+None
+Liveness properties
+Dead markings
+648 [5365, 5364, 5363, 5362, …]
+Dead transition instances
+None 4.1. Positioning performances under different signal interference scenarios
+Live transition instances
+None Table 4 presents a comparative analysis of GNSS-based train posi-
+Fairness properties
+tioning performances under various signal interference scenarios: in-
+No infinite occurrence sequences.
+terference-free condition (normal) and conditions that are interfered
+with by three types of interference signals: AM, FM, and pulse
+modeling techniques, ensuring the reality and accuracy of the simula- signals. The analysis focuses on key metrics such as mean error, stan-
+tion inputs. Each data entry includes information for a specific ob- dard deviation, and their respective components in the UTM coordinate
+servation epoch, such as ephemeris time, true pseudoranges, elevation system.
+Table 4
+Positioning performances under different signal interferences.
+Scenario Mean Standard Expected Normalized Helmert Expected Normalized Helmert directional
+error/m deviation/m directional directional directional directional standard directional standard standard
+mean/m mean/m mean/m deviation/m deviation/m deviation/m
+Normal 1.0279 0.0552 0.2085 0.9477 −0.2189 0.2426 0.0714 0.0776
+AM 4.9484 4.0833 0.1436 1.0626 −0.2124 2.5681 2.5527 5.1820
+FM 6.2241 5.2630 0.3715 1.0194 −0.0632 3.3917 3.4981 6.4434
+Pulse 4.7925 3.6242 0.2009 1.1515 −0.6216 2.2564 2.4293 4.8330
+182
+
+--- PAGE 9 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Table 5
+Positioning performances under different environment scenarios.
+Scenario Mean Error/m Standard Expected Normalized Helmert Expected Normalized Helmert
+deviation/m directional directional directional directional directional directional
+mean/m mean/m mean/m standard standard standard
+deviation/m deviation/m deviation/m
+Open Area 1.0279 0.0552 0.2085 0.9477 −0.2189 0.2426 0.0714 0.0776
+Mountain Occlusion 1.2979 0.4528 0.2950 1.1064 −0.4783 0.2567 0.2791 0.4535
+Tunnel 5.6670 6.6901 −0.1565 0.9020 −3.8520 1.5354 1.2680 7.5652
+Under interference-free conditions, the positioning system demon-
+strates high accuracy and stability, with a mean error of 1.0279 m and a
+standard deviation of 0.0552 m. However, under signal interference
+conditions, the system’s performance degrades significantly. The AM
+signal interference increases the mean error to 4.9484 m and the stan-
+dard deviation to 4.0833 m, with the elevation direction showing the
+most significant fluctuations. This is likely due to the AM signal inter-
+ference directly affecting signal power through amplitude variations,
+leading to enhanced vertical errors. The FM signal interference causes
+even more severe impacts, with the mean error rising to 6.2241 m and
+the standard deviation of 5.2630 m. The FM signal interference in-
+troduces frequency shifts exacerbating Doppler effects and significantly
+increasing error fluctuations in the eastward and northward directions.
+The pulse signal interference characterized by periodic bursts of high-
+intensity disruption, results in a mean error of 4.7925 m and a standard
+Fig. 10. Position errors in tunnel scenario.
+deviation of 3.6242 m. Despite a lower mean error compared to the FM
+signal interference, the pulse signal interference significantly affects all
+three spatial dimensions. This is due to its transient and repetitive impact of tunnel environments and their transitions on GNSS-based
+nature which destabilizes signal reception and disrupts GNSS compu- positioning performance.
+tations. These findings demonstrate that different types of signal in-
+terferences uniquely affect GNSS-based positioning accuracy. The FM 5. Conclusion
+signal interference exerts the most severe impact followed by pulse and
+AM signal interference. The elevation direction is the most sensitive to This paper presents a CPNs-based approach to evaluate the perfor-
+such disruptions, highlighting the direct influence of signal interference mances of GNSS-based train positioning systems under real-world op-
+characteristics on positioning stability in different directions. erational conditions. By constructing a hierarchical CPN model, the
+study successfully models the process of GNSS signal reception and
+4.2. Positioning performances under different environment scenarios interferences, as well as the impacts of complex environmental factors
+on the GNSS-based train positioning. The simulation results emphasize
+Table 5 provides a detailed analysis of the performances of the po- that signal interferences (i.e., interfered by AM, FM, and pulse signals)
+sitioning system under three distinct environmental scenarios: Open have a significant impact on the GNSS-based positioning accuracy, with
+Area, Mountain Occlusion, and Tunnel. Key metrics of mean error, FM interference exerting the most pronounced effects, particularly in
+standard deviation, and UTM coordinate system components are com- the vertical direction. Environmental factors like terrain obstructions
+pared to assess the accuracy and stability of the system. This compar- and tunnel shielding further degrade signal visibility and increase po-
+ison highlights the impact of different environmental conditions on sitioning errors. The model also identifies critical challenges during
+positioning performances. signal reacquisition, particularly in tunnel transitions, which exacerbate
+In open areas, it exhibits high precision with a mean error of error growth.
+1.0279 m and minimal fluctuation, highlighting its robustness under While the proposed approach effectively demonstrates the impact of
+unobstructed conditions. However, in mountainous environments, the various signal interferences and environmental conditions on the per-
+mean error increases to 1.2979 m, reflecting the effects of signal mul- formance of the GNSS-based train positioning, future research could
+tipath and obstructions caused by complex terrain, with the elevation explore the integration of additional signal interference mitigation
+direction being particularly sensitive to these factors. Tunnel scenarios techniques to improve the accuracy and stability of the GNSS-based
+show the most pronounced degradation with a mean error of 5.6670 m. positioning for railway applications.
+This dramatic increase results from severe signal blockages in tunnels
+and the instability during signal reacquisition after exiting the tunnel. CRediT authorship contribution statement
+Fig. 10 illustrates the evolution of position error in the tunnel en-
+vironment. During the “Inside the Tunnel” phase, GNSS signals are Siqi Wang: Writing – review & editing, Software, Data curation.
+completely blocked by the surrounding structure, resulting in a loss of Shuting Chen: Writing – original draft, Validation, Methodology,
+positioning capability (represented by the gray shaded region). Upon Formal analysis. Daohua Wu: Writing – review & editing, Supervision,
+exiting the tunnel (marked by the vertical dashed line), the system Methodology, Conceptualization. Jiang Liu: Writing – review &
+begins to reacquire GNSS signals; however, due to severe multipath editing, Funding acquisition, Conceptualization.
+effects and signal obstructions, the initial position errors are sig-
+nificantly large. As the train moves further away from the tunnel exit, Data Availability
+the surrounding environment improves, leading to a gradual reduction
+in error, which eventually stabilizes. This trend highlights the critical Data will be made available on request.
+183
+
+--- PAGE 10 ---
+
+S. Chen, D. Wu, J. Liu et al. High-speed Railway 3 (2025) 175–184
+Declaration of Competing Interests [10] K. Parlin, T. Riihonen, Analog mitigation of frequency-modulated interference for
+improved GNSS reception, 2000 International Conference on Localization and GNSS
+The authors declare that they have no known competing financial (ICL-GNSS), IEEE, Tampere, 2020, pp. 1–6.
+[11] L. Zhang, B. Tang, C. Zheng, et al., A navigation interference detection and orientation
+interests or personal relationships that could have appeared to influ-
+technology based on GNSS handheld terminal, China Satellite Navigation Conference
+ence the work reported in this paper. (CSNC 2022), Springer, Singapore, 2022, pp. 542–551.
+[12] I. Ilie, D. Fortin, J. Landry, et al., Real-world interferences’ impacts analysis using
+high dynamic range gnss RF/IF signals record and playback, Proceedings of the
+Acknowledgement
+22nd International Technical Meeting of the Satellite Division of The Institute of
+Navigation (ION GNSS 2009), Savannah, 2009, pp. 38–48.
+This work was supported by the National Key Research and [13] B. Wu, Research on GNSS/INS based train positioning performance evaluation
+method, Doctoral thesis, Beijing Jiaotong University, Beijing, 2022.
+Development Program of China (2023YFB3907300), the Fundamental
+[14] X. Li, H. Wang, S. Li, et al., A tightly couple GNSS PPP/INS/LiDAR method for
+Research Funds for the Central Universities (2024JBMC002), and the precise vehicle navigation, Satel. Nav. 2 (2021) 26.
+National Natural Science Foundation of China (T2222015, U2268206 ). [15] P. Wang, X. Diao, Research and application of haar wavelet transformation in train
+positioning, Math. Pro. Eng. 2022 (2022) 6545817.
+[16] K. Jensen, L.M. Kristensen, Coloured Petri Nets: Modelling and Validation of
+References Concurrent Systems, Springer, Berlin, 2009.
+[17] T. Murata, Petri nets: Properties analysis and applications, Pro. IEEE 77 (1989)
+[1] D. Mikhaylov, C. Amatetti, T. Polonelli, et al., Toward the future generation of 541–580.
+railway localization exploiting RTK and GNSS, IEEE Trans. Instru. Measure. 72 [18] C. Girault, R. Valk, Petri Nets for Systems Engineering: A Guide to Modeling,
+(2023) 8502610. Verification, and Applications, Springer, Berlin, 2013.
+[2] M. Sengupta, Choice of sensor fusion framework for train positioning system, WIT [19] D. Wu, D. Lu, T. Tang, Qualitative and quantitative safety evaluation of train
+Trans. Built Environ. 199 (2020) 5364. control systems (CTCS) with stochastic colored petri nets, IEEE Trans. Int. Trans.
+[3] T. Kitano, Y. Ota, S. Taniguchi, et al., On-board train positioning and train integrity Sys. 23 (8) (2021) 10223–10238.
+management system by combination of tachometer generators and inertial sensors, [20] K. Ji, L. Chai, S. Li, et al., Collision risk evaluation and verification of GNSS-based
+Q. Rep. RTRI 61 (2) (2020) 114–119. train integrity detection, Appl. Sci. 11 (16) (2021) 7764.
+[4] Z. Wang, G. Yu, B. Zhou, et al., A train positioning method based-on vision and [21] D. Wu, J. Liu, H. Wang, et al., A CPN-based approach for studying impacts of
+millimeter-wave radar data fusion, IEEE Trans. Instru. Measure. 23 (2021) communication delays on safety and availability of safety-critical distributed net-
+4603–4613. worked control systems, IEEE Trans. Indust. Inf. 18 (5) (2021) 3033–3042.
+[5] L. Zhang, Research on EKF based GPS/ODO integrated positioning method, Master’s [22] T. Zhang, X. Li, D. Wu, et al., Evaluating the safety control scheme of railway
+thesis, Beijing Jiaotong University, Beijing, 2016. centralized traffic control (CTC) system with coloured petri nets, Sustainability 14
+[6] J. Otegui, A. Bahillo, I. Lopetegi, et al., Evaluation of experimental GNSS and 10- (18) (2022) 11669.
+DOF MEMS IMU measurements for train positioning, IEEE Trans. Instru. Measure. [23] F. Taylor, E. Gattis, L. Trapani, et al., Software defined radio for GNSS radio fre-
+68 (2019) 269–279. quency interference localization, Sensors 24 (2023) 72.
+[7] Z. Zang, Operation and maintenance technology of air-ground integrated “Digital [24] F.B. daSilva, E. Cetin, W.A. Martins, Radio frequency interference mitigation via
+Twins” based on BIM and GIS for intelligent Beijing—Zhangjiakou high speed nonnegative matrix factorization for GNSS, IEEE Trans. Aerosp. Electron. Syst. 59
+railway, Railw. Trans. Econo. 44 (9) (2022) 139–145. (2022) 3493–3504.
+[8] M.J. Murrian, L. Narula, P.A. Iannucci, et al., First results from three years of GNSS [25] F. Soualle, M. Cattenoz, K. Giger, et al., Improved analytical models of snir
+interference monitoring from low Earth orbit, Navigation 68 (2021) 673–685. degradation in presence of pulsed signals and impact of code-pulse synchrony,
+[9] J. Jang, M. Paonni, B. Eissfeller, CW interference effects on tracking performance of 5th European Workshop on GNSS Signals and Signal Processing, Toulouse,
+GNSS receivers, IEEE Trans. Aero. Electr. Sys. 48 (1) (2012) 243–258. France, 2011.
+184

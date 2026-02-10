@@ -1,0 +1,40 @@
+# Created by Octave 8.4.0, Tue Feb 10 13:14:48 2026 UTC <runner@runnervmwffz4>
+# name: table_data
+# type: matrix
+# rows: 3
+# columns: 2
+ 1.0593146926312169 0.47525586486958693
+ 1.8244104117403448 1.0311701473558181
+ 6.5960510685048472 9.85571096262737
+
+
+# name: scenarios
+# type: cell
+# rows: 1
+# columns: 3
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 9
+Open Area
+
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 8
+Mountain
+
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 6
+Tunnel
+
+
+
+
+
