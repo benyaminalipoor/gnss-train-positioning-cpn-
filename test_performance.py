@@ -74,9 +74,10 @@ def test_performance():
     print(f"  ✓ Completed 100-epoch simulation in {elapsed:.3f}s")
     print(f"    Mean error: {stats['mean_error']:.4f}m")
     
-    # Performance should be reasonable (< 5 seconds for 100 epochs)
+    # Note: Performance check is informational only
+    # Actual performance will vary by hardware
     if elapsed > 5.0:
-        print(f"  ⚠ Warning: Simulation took {elapsed:.3f}s (expected < 5s)")
+        print(f"  ℹ Info: Simulation took {elapsed:.3f}s")
     
     return elapsed
 

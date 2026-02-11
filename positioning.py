@@ -124,7 +124,7 @@ def least_squares_positioning(
         hdop = np.sqrt(Q[0, 0] + Q[1, 1])
         vdop = np.sqrt(Q[2, 2])
         tdop = np.sqrt(Q[3, 3])
-    except:
+    except Exception:
         gdop = pdop = hdop = vdop = tdop = 999.0
     
     dop_values = {
