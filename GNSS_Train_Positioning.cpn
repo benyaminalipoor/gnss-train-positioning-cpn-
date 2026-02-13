@@ -813,6 +813,567 @@ end</text>
       </arc>
     </page>
     
+    <!-- Page: GNSS Receiver (Hierarchical Sub-page) -->
+    <page id="ID58">
+      <pageattr name="GNSS Receiver"/>
+      <place id="ID59">
+        <posattr x="100" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Scenario_In</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID60">
+          <posattr x="100" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>Scenario</text>
+        </type>
+        <port>
+          <place idref="ID59"/>
+        </port>
+      </place>
+      
+      <place id="ID61">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Environment_Effects</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID62">
+          <posattr x="300" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>ScenarioType</text>
+        </type>
+      </place>
+      
+      <place id="ID63">
+        <posattr x="500" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Interference_Effects</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID64">
+          <posattr x="500" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>InterferenceType</text>
+        </type>
+      </place>
+      
+      <place id="ID65">
+        <posattr x="700" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Raw_Signals</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID66">
+          <posattr x="700" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SignalList</text>
+        </type>
+        <port>
+          <place idref="ID65"/>
+        </port>
+      </place>
+      
+      <trans id="ID67">
+        <posattr x="200" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Split_Scenario</text>
+        <box w="100.000000" h="40.000000"/>
+      </trans>
+      
+      <trans id="ID68">
+        <posattr x="600" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Apply_Effects</text>
+        <box w="100.000000" h="40.000000"/>
+        <code id="ID69">
+          <posattr x="600" y="240"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>generateSignals(scenarioType, interfType, t)</text>
+        </code>
+      </trans>
+      
+      <arc id="ID70" orientation="PtoT" order="1">
+        <transend idref="ID67"/>
+        <placeend idref="ID59"/>
+        <annot id="ID71">
+          <posattr x="150" y="150"/>
+          <text>scenario</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID72" orientation="TtoP" order="1">
+        <transend idref="ID67"/>
+        <placeend idref="ID61"/>
+        <annot id="ID73">
+          <posattr x="250" y="150"/>
+          <text>#1 scenario</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID74" orientation="TtoP" order="2">
+        <transend idref="ID67"/>
+        <placeend idref="ID63"/>
+        <annot id="ID75">
+          <posattr x="350" y="150"/>
+          <text>#2 scenario</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID76" orientation="PtoT" order="1">
+        <transend idref="ID68"/>
+        <placeend idref="ID61"/>
+        <annot id="ID77">
+          <posattr x="450" y="150"/>
+          <text>scenarioType</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID78" orientation="PtoT" order="2">
+        <transend idref="ID68"/>
+        <placeend idref="ID63"/>
+        <annot id="ID79">
+          <posattr x="550" y="150"/>
+          <text>interfType</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID80" orientation="TtoP" order="1">
+        <transend idref="ID68"/>
+        <placeend idref="ID65"/>
+        <annot id="ID81">
+          <posattr x="650" y="150"/>
+          <text>output</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- Page: Position Solution (EKF Details) -->
+    <page id="ID82">
+      <pageattr name="Position Solution"/>
+      <place id="ID83">
+        <posattr x="100" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Signals_In</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID84">
+          <posattr x="100" y="70"/>
+          <text>SignalList</text>
+        </type>
+        <port>
+          <place idref="ID83"/>
+        </port>
+      </place>
+      
+      <place id="ID85">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>State_In</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID86">
+          <posattr x="300" y="70"/>
+          <text>FilterState</text>
+        </type>
+        <port>
+          <place idref="ID85"/>
+        </port>
+      </place>
+      
+      <place id="ID87">
+        <posattr x="500" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Measurements</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID88">
+          <posattr x="500" y="70"/>
+          <text>MeasurementList</text>
+        </type>
+      </place>
+      
+      <place id="ID89">
+        <posattr x="200" y="300"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Predicted_State</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID90">
+          <posattr x="200" y="270"/>
+          <text>FilterState</text>
+        </type>
+      </place>
+      
+      <place id="ID91">
+        <posattr x="500" y="300"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Updated_State</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID92">
+          <posattr x="500" y="270"/>
+          <text>FilterState</text>
+        </type>
+        <port>
+          <place idref="ID91"/>
+        </port>
+      </place>
+      
+      <place id="ID93">
+        <posattr x="700" y="300"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Position_Out</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID94">
+          <posattr x="700" y="270"/>
+          <text>StateVector</text>
+        </type>
+        <port>
+          <place idref="ID93"/>
+        </port>
+      </place>
+      
+      <trans id="ID95">
+        <posattr x="400" y="150"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Convert_To_Measurements</text>
+        <box w="140.000000" h="40.000000"/>
+        <code id="ID96">
+          <posattr x="400" y="190"/>
+          <text>signalsToMeasurements(signals)</text>
+        </code>
+      </trans>
+      
+      <trans id="ID97">
+        <posattr x="200" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Predict</text>
+        <box w="80.000000" h="40.000000"/>
+        <code id="ID98">
+          <posattr x="200" y="240"/>
+          <text>ekfPredict(filterState, 1.0)</text>
+        </code>
+      </trans>
+      
+      <trans id="ID99">
+        <posattr x="400" y="350"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Update</text>
+        <box w="80.000000" h="40.000000"/>
+        <code id="ID100">
+          <posattr x="400" y="390"/>
+          <text>let
+  val (updatedState, updatedCov) = ekfUpdate(predicted, measurements, real(t))
+in
+  ((updatedState, updatedCov), updatedState)
+end</text>
+        </code>
+      </trans>
+      
+      <arc id="ID101" orientation="PtoT" order="1">
+        <transend idref="ID95"/>
+        <placeend idref="ID83"/>
+        <annot id="ID102">
+          <posattr x="250" y="125"/>
+          <text>signals</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID103" orientation="TtoP" order="1">
+        <transend idref="ID95"/>
+        <placeend idref="ID87"/>
+        <annot id="ID104">
+          <posattr x="450" y="125"/>
+          <text>output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID105" orientation="PtoT" order="1">
+        <transend idref="ID97"/>
+        <placeend idref="ID85"/>
+        <annot id="ID106">
+          <posattr x="250" y="150"/>
+          <text>filterState</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID107" orientation="TtoP" order="1">
+        <transend idref="ID97"/>
+        <placeend idref="ID89"/>
+        <annot id="ID108">
+          <posattr x="200" y="250"/>
+          <text>output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID109" orientation="PtoT" order="1">
+        <transend idref="ID99"/>
+        <placeend idref="ID89"/>
+        <annot id="ID110">
+          <posattr x="300" y="325"/>
+          <text>predicted</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID111" orientation="PtoT" order="2">
+        <transend idref="ID99"/>
+        <placeend idref="ID87"/>
+        <annot id="ID112">
+          <posattr x="450" y="225"/>
+          <text>measurements</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID113" orientation="TtoP" order="1">
+        <transend idref="ID99"/>
+        <placeend idref="ID91"/>
+        <annot id="ID114">
+          <posattr x="450" y="325"/>
+          <text>#1 output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID115" orientation="TtoP" order="2">
+        <transend idref="ID99"/>
+        <placeend idref="ID93"/>
+        <annot id="ID116">
+          <posattr x="550" y="325"/>
+          <text>#2 output</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- Page: Evaluation -->
+    <page id="ID117">
+      <pageattr name="Evaluation"/>
+      <place id="ID118">
+        <posattr x="100" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Position_In</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID119">
+          <posattr x="100" y="70"/>
+          <text>StateVector</text>
+        </type>
+        <port>
+          <place idref="ID118"/>
+        </port>
+      </place>
+      
+      <place id="ID120">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Reference_Position</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID121">
+          <posattr x="300" y="70"/>
+          <text>Position</text>
+        </type>
+      </place>
+      
+      <place id="ID122">
+        <posattr x="500" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Current_Error</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID123">
+          <posattr x="500" y="70"/>
+          <text>ErrorMetric</text>
+        </type>
+      </place>
+      
+      <place id="ID124">
+        <posattr x="700" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Error_History</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID125">
+          <posattr x="700" y="70"/>
+          <text>ErrorList</text>
+        </type>
+        <port>
+          <place idref="ID124"/>
+        </port>
+      </place>
+      
+      <place id="ID126">
+        <posattr x="500" y="300"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>RMSE_Result</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID127">
+          <posattr x="500" y="270"/>
+          <text>REAL</text>
+        </type>
+      </place>
+      
+      <trans id="ID128">
+        <posattr x="200" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Generate_Reference</text>
+        <box w="120.000000" h="40.000000"/>
+        <code id="ID129">
+          <posattr x="200" y="240"/>
+          <text>generateReferenceTrajectory(t)</text>
+        </code>
+      </trans>
+      
+      <trans id="ID130">
+        <posattr x="400" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Calculate_Error</text>
+        <box w="100.000000" h="40.000000"/>
+        <code id="ID131">
+          <posattr x="400" y="240"/>
+          <text>calculateError(state, refPos)</text>
+        </code>
+      </trans>
+      
+      <trans id="ID132">
+        <posattr x="600" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Accumulate_Errors</text>
+        <box w="120.000000" h="40.000000"/>
+        <code id="ID133">
+          <posattr x="600" y="240"/>
+          <text>error::errors</text>
+        </code>
+      </trans>
+      
+      <trans id="ID134">
+        <posattr x="600" y="350"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Calculate_RMSE</text>
+        <box w="100.000000" h="40.000000"/>
+        <code id="ID135">
+          <posattr x="600" y="390"/>
+          <text>calculateRMSE(errors)</text>
+        </code>
+      </trans>
+      
+      <arc id="ID136" orientation="PtoT" order="1">
+        <transend idref="ID130"/>
+        <placeend idref="ID118"/>
+        <annot id="ID137">
+          <posattr x="250" y="150"/>
+          <text>state</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID138" orientation="PtoT" order="2">
+        <transend idref="ID130"/>
+        <placeend idref="ID120"/>
+        <annot id="ID139">
+          <posattr x="350" y="150"/>
+          <text>refPos</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID140" orientation="TtoP" order="1">
+        <transend idref="ID130"/>
+        <placeend idref="ID122"/>
+        <annot id="ID141">
+          <posattr x="450" y="150"/>
+          <text>output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID142" orientation="PtoT" order="1">
+        <transend idref="ID132"/>
+        <placeend idref="ID122"/>
+        <annot id="ID143">
+          <posattr x="550" y="150"/>
+          <text>error</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID144" orientation="PtoT" order="2">
+        <transend idref="ID132"/>
+        <placeend idref="ID124"/>
+        <annot id="ID145">
+          <posattr x="650" y="150"/>
+          <text>errors</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID146" orientation="TtoP" order="1">
+        <transend idref="ID132"/>
+        <placeend idref="ID124"/>
+        <annot id="ID147">
+          <posattr x="650" y="180"/>
+          <text>output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID148" orientation="PtoT" order="1">
+        <transend idref="ID134"/>
+        <placeend idref="ID124"/>
+        <annot id="ID149">
+          <posattr x="650" y="225"/>
+          <text>errors</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID150" orientation="TtoP" order="1">
+        <transend idref="ID134"/>
+        <placeend idref="ID126"/>
+        <annot id="ID151">
+          <posattr x="550" y="325"/>
+          <text>output</text>
+        </annot>
+      </arc>
+    </page>
+    
     <!-- Monitor for stopping simulation -->
     <monitor id="ID57">
       <timed val="true"/>
