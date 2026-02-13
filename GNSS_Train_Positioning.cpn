@@ -1,0 +1,839 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE workspaceElements PUBLIC "-//CPN//DTD CPNXML 1.0//EN" "http://cpntools.org/DTD/6/cpn.dtd">
+<workspaceElements>
+  <generator tool="CPN Tools" version="4.0.1" format="6"/>
+  <cpnet>
+    <globbox>
+      <block id="ID1">
+        <id>Global Declarations</id>
+        <ml id="ID2">
+(* Color Set Declarations *)
+colset INT = int;
+colset REAL = real;
+colset STRING = string;
+colset BOOL = bool;
+
+(* Position and Velocity *)
+colset Position = product REAL * REAL * REAL timed;
+colset Velocity = product REAL * REAL * REAL;
+colset State = product Position * Velocity;
+
+(* GNSS Signal Types *)
+colset SatelliteID = int with 1..32;
+colset SignalQuality = product REAL * REAL; (* SNR, Carrier-to-Noise *)
+colset GNSSSignal = product SatelliteID * REAL * REAL * REAL * SignalQuality timed;
+colset SignalList = list GNSSSignal;
+
+(* Scenario Types *)
+colset ScenarioType = with OpenArea | Mountain | Tunnel;
+colset InterferenceType = with Normal | AM | FM | Pulse;
+colset Scenario = product ScenarioType * InterferenceType;
+
+(* EKF State *)
+colset StateVector = product REAL * REAL * REAL * REAL * REAL * REAL * REAL * REAL;
+colset CovarianceMatrix = list REAL; (* 8x8 matrix flattened *)
+colset FilterState = product StateVector * CovarianceMatrix;
+
+(* Measurement *)
+colset Measurement = product SatelliteID * REAL * REAL; (* Sat ID, Range, DeltaRange *)
+colset MeasurementList = list Measurement;
+
+(* Error Metrics *)
+colset ErrorMetric = product REAL * REAL * REAL; (* Position error X, Y, Z *)
+colset ErrorList = list ErrorMetric timed;
+
+(* Time *)
+colset TIME = int;
+
+(* Variable Declarations *)
+var t : TIME;
+var dt : REAL;
+var x, y, z : REAL;
+var vx, vy, vz : REAL;
+var px, py, pz : REAL;
+var satId : SatelliteID;
+var signal : GNSSSignal;
+var signals : SignalList;
+var scenario : Scenario;
+var scenarioType : ScenarioType;
+var interfType : InterferenceType;
+var state : StateVector;
+var cov : CovarianceMatrix;
+var filterState : FilterState;
+var meas : Measurement;
+var measurements : MeasurementList;
+var snr, cn0 : REAL;
+var quality : SignalQuality;
+var range, deltaRange : REAL;
+var error : ErrorMetric;
+var errors : ErrorList;
+var pos : Position;
+var vel : Velocity;
+
+(* Helper Functions *)
+fun sqrt(x : real) = Math.sqrt(x);
+fun pow(x : real, y : real) = Math.pow(x, y);
+fun sin(x : real) = Math.sin(x);
+fun cos(x : real) = Math.cos(x);
+fun atan2(y : real, x : real) = Math.atan2(y, x);
+
+(* Constants *)
+val PI = 3.14159265359;
+val LIGHT_SPEED = 299792458.0; (* m/s *)
+val GPS_L1_FREQ = 1575.42e6; (* Hz *)
+val WAVELENGTH = LIGHT_SPEED / GPS_L1_FREQ;
+
+(* Satellite positions (simplified constellation) *)
+fun getSatellitePosition(satId : int, t : real) : (real * real * real) =
+  let
+    val orbital_radius = 26560000.0 (* GPS orbital radius in meters *)
+    val orbital_period = 43200.0 (* seconds *)
+    val angular_velocity = 2.0 * PI / orbital_period
+    val phase_offset = real(satId) * 2.0 * PI / 32.0
+    val angle = angular_velocity * t + phase_offset
+    val x = orbital_radius * cos(angle)
+    val y = orbital_radius * sin(angle)
+    val z = orbital_radius * sin(angle / 4.0) * 0.3
+  in
+    (x, y, z)
+  end;
+
+(* Distance calculation *)
+fun distance(x1 : real, y1 : real, z1 : real, x2 : real, y2 : real, z2 : real) : real =
+  sqrt(pow(x2 - x1, 2.0) + pow(y2 - y1, 2.0) + pow(z2 - z1, 2.0));
+
+(* Generate GNSS Signals *)
+fun generateSignals(scenarioType : ScenarioType, interfType : InterferenceType, t : int) : SignalList =
+  let
+    val numSats = case scenarioType of
+      OpenArea =&gt; 12
+      | Mountain =&gt; 8
+      | Tunnel =&gt; 4
+    
+    val baseNoise = case scenarioType of
+      OpenArea =&gt; 0.5
+      | Mountain =&gt; 1.5
+      | Tunnel =&gt; 3.0
+    
+    val interfNoise = case interfType of
+      Normal =&gt; 0.0
+      | AM =&gt; 0.8
+      | FM =&gt; 1.5
+      | Pulse =&gt; 1.2
+    
+    val totalNoise = baseNoise + interfNoise
+    
+    fun createSignal(satId : int) =
+      let
+        val (sx, sy, sz) = getSatellitePosition(satId, real(t))
+        val trueRange = distance(0.0, 0.0, 100.0, sx, sy, sz)
+        val noisyRange = trueRange + totalNoise
+        val snr = 45.0 - totalNoise * 2.0
+        val cn0 = 48.0 - totalNoise * 2.5
+      in
+        (satId, noisyRange, 0.0, real(t), (snr, cn0))
+      end
+  in
+    List.tabulate(numSats, fn i =&gt; createSignal(i + 1))
+  end;
+
+(* Initialize EKF State *)
+fun initializeEKF() : FilterState =
+  let
+    val initialState = (0.0, 0.0, 100.0, 20.0, 0.0, 0.0, 0.0, 0.0)
+    val initialCov = List.tabulate(64, fn i =&gt; 
+      if i mod 9 = 0 then 100.0 else 0.0)
+  in
+    (initialState, initialCov)
+  end;
+
+(* Matrix operations *)
+fun getMatrixElement(mat : real list, row : int, col : int, size : int) : real =
+  List.nth(mat, row * size + col);
+
+fun setMatrixElement(mat : real list, row : int, col : int, size : int, value : real) : real list =
+  List.tabulate(size * size, fn i =&gt;
+    if i = row * size + col then value
+    else List.nth(mat, i));
+
+fun multiplyMatrices(a : real list, b : real list, m : int, n : int, p : int) : real list =
+  List.tabulate(m * p, fn idx =&gt;
+    let
+      val i = idx div p
+      val j = idx mod p
+      val row_a = List.tabulate(n, fn k =&gt; getMatrixElement(a, i, k, n))
+      val col_b = List.tabulate(n, fn k =&gt; getMatrixElement(b, k, j, p))
+    in
+      foldl (fn ((x, y), sum) =&gt; sum + x * y) 0.0 (ListPair.zip(row_a, col_b))
+    end);
+
+fun addMatrices(a : real list, b : real list) : real list =
+  ListPair.map (fn (x, y) =&gt; x + y) (a, b);
+
+fun transposeMatrix(mat : real list, rows : int, cols : int) : real list =
+  List.tabulate(cols * rows, fn idx =&gt;
+    let
+      val i = idx div rows
+      val j = idx mod rows
+    in
+      getMatrixElement(mat, j, i, cols)
+    end);
+
+fun identityMatrix(size : int) : real list =
+  List.tabulate(size * size, fn i =&gt;
+    if i mod (size + 1) = 0 then 1.0 else 0.0);
+
+(* EKF Prediction Step *)
+fun ekfPredict(state : StateVector, cov : CovarianceMatrix, dt : real) : FilterState =
+  let
+    val (x, y, z, vx, vy, vz, cb, cd) = state
+    
+    (* State transition: position += velocity * dt *)
+    val x_new = x + vx * dt
+    val y_new = y + vy * dt
+    val z_new = z + vz * dt
+    
+    val newState = (x_new, y_new, z_new, vx, vy, vz, cb, cd)
+    
+    (* State transition matrix F (8x8) - simplified *)
+    val F = List.tabulate(64, fn i =&gt;
+      let
+        val row = i div 8
+        val col = i mod 8
+      in
+        if row = col then 1.0
+        else if row &lt; 3 andalso col = row + 3 then dt
+        else 0.0
+      end)
+    
+    (* Process noise covariance Q *)
+    val Q = List.tabulate(64, fn i =&gt;
+      if i mod 9 = 0 then 0.1 else 0.0)
+    
+    (* P = F * P * F^T + Q *)
+    val FP = multiplyMatrices(F, cov, 8, 8, 8)
+    val FT = transposeMatrix(F, 8, 8)
+    val FPFT = multiplyMatrices(FP, FT, 8, 8, 8)
+    val newCov = addMatrices(FPFT, Q)
+  in
+    (newState, newCov)
+  end;
+
+(* EKF Update Step *)
+fun ekfUpdate(filterState : FilterState, measurements : MeasurementList, t : real) : FilterState =
+  let
+    val (state, cov) = filterState
+    val (x, y, z, vx, vy, vz, cb, cd) = state
+    
+    val numMeas = length(measurements)
+    
+    (* Build measurement matrix H and innovation vector z *)
+    fun processMeasurement(meas : Measurement) : (real list * real) =
+      let
+        val (satId, measRange, measDeltaRange) = meas
+        val (sx, sy, sz) = getSatellitePosition(satId, t)
+        val dx = sx - x
+        val dy = sy - y
+        val dz = sz - z
+        val predictedRange = sqrt(dx * dx + dy * dy + dz * dz)
+        
+        (* Measurement Jacobian row (partial derivatives) *)
+        val h_row = [
+          ~dx / predictedRange,
+          ~dy / predictedRange,
+          ~dz / predictedRange,
+          0.0, 0.0, 0.0,
+          1.0, 0.0
+        ]
+        
+        val innovation = measRange - (predictedRange + cb)
+      in
+        (h_row, innovation)
+      end
+    
+    val measData = map processMeasurement measurements
+    val H_rows = map #1 measData
+    val innovations = map #2 measData
+    
+    (* Flatten H matrix *)
+    val H = List.concat(H_rows)
+    
+    (* Measurement noise R *)
+    val R = List.tabulate(numMeas * numMeas, fn i =&gt;
+      if i mod (numMeas + 1) = 0 then 4.0 else 0.0)
+    
+    (* Kalman Gain: K = P * H^T * (H * P * H^T + R)^-1 *)
+    val HT = transposeMatrix(H, numMeas, 8)
+    val PHT = multiplyMatrices(cov, HT, 8, 8, numMeas)
+    val HP = multiplyMatrices(H, cov, numMeas, 8, 8)
+    val HPHT = multiplyMatrices(HP, HT, numMeas, 8, numMeas)
+    val S = addMatrices(HPHT, R)
+    
+    (* Simplified: K ≈ PHT / S (assuming S is diagonal) *)
+    val K = PHT (* Simplified Kalman gain *)
+    
+    (* State update: x = x + K * innovation *)
+    val stateUpdate = List.tabulate(8, fn i =&gt;
+      let
+        val k_row = List.tabulate(numMeas, fn j =&gt;
+          getMatrixElement(K, i, j, numMeas))
+        val update = foldl (fn ((k, innov), sum) =&gt; sum + k * innov) 0.0
+          (ListPair.zip(k_row, innovations))
+      in
+        update
+      end)
+    
+    val newState = (
+      x + List.nth(stateUpdate, 0),
+      y + List.nth(stateUpdate, 1),
+      z + List.nth(stateUpdate, 2),
+      vx + List.nth(stateUpdate, 3),
+      vy + List.nth(stateUpdate, 4),
+      vz + List.nth(stateUpdate, 5),
+      cb + List.nth(stateUpdate, 6),
+      cd + List.nth(stateUpdate, 7)
+    )
+    
+    (* Covariance update: P = (I - K*H) * P *)
+    val I = identityMatrix(8)
+    val KH = multiplyMatrices(K, H, 8, numMeas, 8)
+    val I_KH = ListPair.map (fn (i, kh) =&gt; i - kh) (I, KH)
+    val newCov = multiplyMatrices(I_KH, cov, 8, 8, 8)
+  in
+    (newState, newCov)
+  end;
+
+(* Convert signals to measurements *)
+fun signalsToMeasurements(signals : SignalList) : MeasurementList =
+  map (fn (satId, range, deltaRange, t, quality) =&gt;
+    (satId, range, deltaRange)) signals;
+
+(* Calculate position error *)
+fun calculateError(estimated : StateVector, reference : Position) : ErrorMetric =
+  let
+    val (ex, ey, ez, _, _, _, _, _) = estimated
+    val (rx, ry, rz) = reference
+    val errX = ex - rx
+    val errY = ey - ry
+    val errZ = ez - rz
+  in
+    (errX, errY, errZ)
+  end;
+
+(* Calculate RMSE *)
+fun calculateRMSE(errors : ErrorList) : real =
+  let
+    val squaredErrors = map (fn (ex, ey, ez) =&gt;
+      ex * ex + ey * ey + ez * ez) errors
+    val meanSquaredError = foldl (fn (e, sum) =&gt; sum + e) 0.0 squaredErrors
+      / real(length(errors))
+  in
+    sqrt(meanSquaredError)
+  end;
+
+(* Reference trajectory generation *)
+fun generateReferenceTrajectory(t : int) : Position =
+  let
+    val time = real(t)
+    val speed = 20.0 (* m/s *)
+    val x = speed * time
+    val y = 0.0
+    val z = 100.0
+  in
+    (x, y, z)
+  end;
+
+(* Test scenario generation *)
+fun generateTestScenario(scenarioId : int) : Scenario =
+  case scenarioId of
+    1 =&gt; (OpenArea, Normal)
+    | 2 =&gt; (OpenArea, AM)
+    | 3 =&gt; (OpenArea, FM)
+    | 4 =&gt; (OpenArea, Pulse)
+    | 5 =&gt; (Mountain, Normal)
+    | 6 =&gt; (Mountain, AM)
+    | 7 =&gt; (Mountain, FM)
+    | 8 =&gt; (Mountain, Pulse)
+    | 9 =&gt; (Tunnel, Normal)
+    | 10 =&gt; (Tunnel, AM)
+    | 11 =&gt; (Tunnel, FM)
+    | 12 =&gt; (Tunnel, Pulse)
+    | _ =&gt; (OpenArea, Normal);
+
+(* Initialize state *)
+fun generateInitialState() : FilterState = initializeEKF();
+
+(* Generate test signals *)
+fun generateTestSignals() : SignalList =
+  generateSignals(OpenArea, Normal, 0);
+        </ml>
+      </block>
+    </globbox>
+    
+    <!-- Page: Top Level -->
+    <page id="ID3">
+      <pageattr name="Top Level"/>
+      <place id="ID4">
+        <posattr x="100" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Scenario</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID5">
+          <posattr x="100" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>Scenario</text>
+        </type>
+        <initmark id="ID6">
+          <posattr x="100" y="130"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>generateTestScenario(1)</text>
+        </initmark>
+      </place>
+      
+      <place id="ID7">
+        <posattr x="300" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>GNSS_Signals</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID8">
+          <posattr x="300" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>SignalList</text>
+        </type>
+        <initmark id="ID9">
+          <posattr x="300" y="130"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>generateTestSignals()</text>
+        </initmark>
+      </place>
+      
+      <place id="ID10">
+        <posattr x="500" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Filter_State</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID11">
+          <posattr x="500" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>FilterState</text>
+        </type>
+        <initmark id="ID12">
+          <posattr x="500" y="130"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>generateInitialState()</text>
+        </initmark>
+      </place>
+      
+      <place id="ID13">
+        <posattr x="700" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Position_Estimate</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID14">
+          <posattr x="700" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>StateVector</text>
+        </type>
+      </place>
+      
+      <place id="ID15">
+        <posattr x="900" y="100"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Errors</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID16">
+          <posattr x="900" y="70"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>ErrorList</text>
+        </type>
+        <initmark id="ID17">
+          <posattr x="900" y="130"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>[]</text>
+        </initmark>
+      </place>
+      
+      <place id="ID18">
+        <posattr x="300" y="300"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Time</text>
+        <ellipse w="80.000000" h="40.000000"/>
+        <type id="ID19">
+          <posattr x="300" y="270"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>TIME</text>
+        </type>
+        <initmark id="ID20">
+          <posattr x="300" y="330"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>1`0</text>
+        </initmark>
+      </place>
+      
+      <trans id="ID21">
+        <posattr x="200" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Generate_Signals</text>
+        <box w="120.000000" h="40.000000"/>
+        <binding id="ID22">
+          <posattr x="200" y="230"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+        </binding>
+      </trans>
+      
+      <arc id="ID23" orientation="PtoT" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID21"/>
+        <placeend idref="ID4"/>
+        <annot id="ID24">
+          <posattr x="150" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>scenario</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID25" orientation="PtoT" order="2">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID21"/>
+        <placeend idref="ID18"/>
+        <annot id="ID26">
+          <posattr x="250" y="250"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>t</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID27" orientation="TtoP" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID21"/>
+        <placeend idref="ID7"/>
+        <annot id="ID28">
+          <posattr x="250" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>generateSignals(#1 scenario, #2 scenario, t)@(t+1)</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID29" orientation="TtoP" order="2">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID21"/>
+        <placeend idref="ID18"/>
+        <annot id="ID30">
+          <posattr x="200" y="250"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>t+1@(t+1)</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID31" orientation="TtoP" order="3">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID21"/>
+        <placeend idref="ID4"/>
+        <annot id="ID32">
+          <posattr x="150" y="180"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>scenario</text>
+        </annot>
+      </arc>
+      
+      <trans id="ID33">
+        <posattr x="600" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>EKF_Positioning</text>
+        <box w="120.000000" h="40.000000"/>
+        <binding id="ID34">
+          <posattr x="600" y="230"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+        </binding>
+        <code id="ID35">
+          <posattr x="600" y="260"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>let
+  val measurements = signalsToMeasurements(signals)
+  val (predictedState, predictedCov) = ekfPredict(filterState, 1.0)
+  val (updatedState, updatedCov) = ekfUpdate((predictedState, predictedCov), measurements, real(t))
+in
+  ((updatedState, updatedCov), updatedState)
+end</text>
+        </code>
+      </trans>
+      
+      <arc id="ID36" orientation="PtoT" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID33"/>
+        <placeend idref="ID7"/>
+        <annot id="ID37">
+          <posattr x="450" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>signals</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID38" orientation="PtoT" order="2">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID33"/>
+        <placeend idref="ID10"/>
+        <annot id="ID39">
+          <posattr x="550" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>filterState</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID40" orientation="PtoT" order="3">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID33"/>
+        <placeend idref="ID18"/>
+        <annot id="ID41">
+          <posattr x="450" y="250"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>t</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID42" orientation="TtoP" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID33"/>
+        <placeend idref="ID10"/>
+        <annot id="ID43">
+          <posattr x="550" y="180"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>#1 output</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID44" orientation="TtoP" order="2">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID33"/>
+        <placeend idref="ID13"/>
+        <annot id="ID45">
+          <posattr x="650" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>#2 output</text>
+        </annot>
+      </arc>
+      
+      <trans id="ID46">
+        <posattr x="800" y="200"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <text>Evaluate_Error</text>
+        <box w="120.000000" h="40.000000"/>
+        <binding id="ID47">
+          <posattr x="800" y="230"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+        </binding>
+        <code id="ID48">
+          <posattr x="800" y="260"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>let
+  val refPos = generateReferenceTrajectory(t)
+  val error = calculateError(state, refPos)
+in
+  error::errors
+end</text>
+        </code>
+      </trans>
+      
+      <arc id="ID49" orientation="PtoT" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID46"/>
+        <placeend idref="ID13"/>
+        <annot id="ID50">
+          <posattr x="750" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>state</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID51" orientation="PtoT" order="2">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID46"/>
+        <placeend idref="ID15"/>
+        <annot id="ID52">
+          <posattr x="850" y="150"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>errors</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID53" orientation="PtoT" order="3">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID46"/>
+        <placeend idref="ID18"/>
+        <annot id="ID54">
+          <posattr x="550" y="250"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>t</text>
+        </annot>
+      </arc>
+      
+      <arc id="ID55" orientation="TtoP" order="1">
+        <posattr x="0.000000" y="0.000000"/>
+        <fillattr colour="White" pattern="Solid" filled="false"/>
+        <lineattr colour="Black" thick="1" type="Solid"/>
+        <textattr colour="Black" bold="false"/>
+        <arrowattr headsize="1.000000" currentcyckle="2"/>
+        <transend idref="ID46"/>
+        <placeend idref="ID15"/>
+        <annot id="ID56">
+          <posattr x="850" y="180"/>
+          <fillattr colour="White" pattern="Solid" filled="false"/>
+          <lineattr colour="Black" thick="1" type="Solid"/>
+          <textattr colour="Black" bold="false"/>
+          <text>output</text>
+        </annot>
+      </arc>
+    </page>
+    
+    <!-- Monitor for stopping simulation -->
+    <monitor id="ID57">
+      <timed val="true"/>
+      <name>Simulation_Time_Monitor</name>
+      <place idref="ID18"/>
+      <predicate>
+        (fn (t:TIME) =&gt; t &gt; 100)
+      </predicate>
+      <init>
+        (fn () =&gt; ())
+      </init>
+      <stop>
+        (fn () =&gt; print "Simulation completed after 100 time steps\n")
+      </stop>
+    </monitor>
+    
+    <options>
+      <option name="realtimestamp" value="1000000000"/>
+      <option name="fair_be" value="false"/>
+      <option name="global_fairness" value="false"/>
+      <option name="outputdirectory" value="output"/>
+    </options>
+  </cpnet>
+</workspaceElements>
